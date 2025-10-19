@@ -1,0 +1,194 @@
+<?php
+/**
+ * Clan database handler
+ * Handles CRUD for clans, locations, and surnames.
+ */
+
+class FamilyTreeClanDatabase
+{
+
+    // Create tables for clans, locations, and surnames
+    public static function setup_tables()
+    {
+        global $wpdb;
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $clans_table = $wpdb->prefix . 'family_clans';
+        $locations_table = $wpdb->prefix . 'clan_locations';
+        $surnames_table = $wpdb->prefix . 'clan_surnames';
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+
+        // Create base tables WITHOUT inline FOREIGN KEYs (dbDelta is picky)
+        $sql1 = "CREATE TABLE $clans_table (
+        id MEDIUMINT(9) NOT NULL AUTO_INCREMENT,
+        clan_name VARCHAR(150) NOT NULL,
+        description TEXT,
+        origin_year SMALLINT(4) NULL,
+        created_by MEDIUMINT(9) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY  (id)
+    ) $charset_collate;";
+
+        $sql2 = "CREATE TABLE $locations_table (
+        id MEDIUMINT(9) NOT NULL AUTO_INCREMENT,
+        clan_id MEDIUMINT(9) NOT NULL,
+        location_name VARCHAR(150) NOT NULL,
+        is_primary TINYINT(1) DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY clan_id_idx (clan_id)
+    ) $charset_collate;";
+
+        $sql3 = "CREATE TABLE $surnames_table (
+        id MEDIUMINT(9) NOT NULL AUTO_INCREMENT,
+        clan_id MEDIUMINT(9) NOT NULL,
+        last_name VARCHAR(100) NOT NULL,
+        is_primary TINYINT(1) DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY clan_id_idx (clan_id)
+    ) $charset_collate;";
+
+        dbDelta($sql1);
+        dbDelta($sql2);
+        dbDelta($sql3);
+
+        // Add proper foreign key constraints using ALTER TABLE.
+        // Note: Some hosts may not allow adding FKs; wrap in try-silence and check errors.
+        $wpdb->query("SET FOREIGN_KEY_CHECKS = 0"); // temporarily disable to avoid problems
+
+        // Add FK for locations -> clans
+        $fk_name1 = $locations_table . '_clan_fk';
+        $sql_fk1 = "ALTER TABLE $locations_table
+                ADD CONSTRAINT {$fk_name1}
+                FOREIGN KEY (clan_id) REFERENCES {$clans_table}(id) ON DELETE CASCADE";
+        // Try to add constraint only if not present
+        $res1 = $wpdb->query($sql_fk1);
+
+        // Add FK for surnames -> clans
+        $fk_name2 = $surnames_table . '_clan_fk';
+        $sql_fk2 = "ALTEFR TABLE $surnames_table
+                ADD CONSTRAINT {$fk_name2}
+                FOREIGN KEY (clan_id) REFERENCES {$clans_table}(id) ON DELETE CASCADE";
+        $res2 = $wpdb->query($sql_fk2);
+
+        $wpdb->query("SET FOREIGN_KEY_CHECKS = 1");
+
+        // Note: If the server doesn't permit adding foreign keys (shared hosts, MyISAM),
+        // the ALTER queries may fail silently — that's okay if you prefer app-level cascade handling.
+
+        return true;
+    }
+
+
+    // Add a new clan
+    public static function add_clan($data)
+    {
+        error_log('Add Clan called: ' . print_r($data, true));
+        global $wpdb;
+        $clan_table = $wpdb->prefix . 'family_clans';
+        $locations_table = $wpdb->prefix . 'clan_locations';
+        $surnames_table = $wpdb->prefix . 'clan_surnames';
+
+        // Validation: ensure at least one location and surname
+        if (empty($data['locations']) || empty($data['surnames'])) {
+            return false;
+        }
+
+        // Insert base clan
+        $wpdb->insert($clan_table, array(
+            'clan_name' => sanitize_text_field($data['clan_name']),
+            'description' => sanitize_textarea_field($data['description']),
+            'origin_year' => !empty($data['origin_year']) ? intval($data['origin_year']) : null,
+            'created_by' => get_current_user_id()
+        ));
+
+        $clan_id = $wpdb->insert_id;
+        if (!$clan_id)
+            return false;
+
+        // Insert locations
+        foreach ($data['locations'] as $loc) {
+            $wpdb->insert($locations_table, array(
+                'clan_id' => $clan_id,
+                'location_name' => sanitize_text_field($loc),
+                'is_primary' => 0
+            ));
+        }
+
+        // Insert surnames
+        foreach ($data['surnames'] as $sn) {
+            $wpdb->insert($surnames_table, array(
+                'clan_id' => $clan_id,
+                'last_name' => sanitize_text_field($sn),
+                'is_primary' => 0
+            ));
+        }
+        error_log('Inserted Clan ID: ' . $clan_id);
+
+        return $clan_id;
+    }
+
+    // Get all clans
+    public static function get_all_clans()
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'family_clans';
+        return $wpdb->get_results("SELECT * FROM $table ORDER BY clan_name ASC");
+    }
+
+    // Get single clan with related data
+    public static function get_clan($id)
+    {
+        global $wpdb;
+        $clans = $wpdb->prefix . 'family_clans';
+        $locations = $wpdb->prefix . 'clan_locations';
+        $surnames = $wpdb->prefix . 'clan_surnames';
+
+        $clan = $wpdb->get_row($wpdb->prepare("SELECT * FROM $clans WHERE id = %d", $id));
+        if (!$clan)
+            return null;
+
+        $clan->locations = $wpdb->get_col($wpdb->prepare("SELECT location_name FROM $locations WHERE clan_id = %d", $id));
+        $clan->surnames = $wpdb->get_col($wpdb->prepare("SELECT last_name FROM $surnames WHERE clan_id = %d", $id));
+
+        return $clan;
+    }
+
+    // Update clan
+    public static function update_clan($id, $data)
+    {
+        global $wpdb;
+        $clans = $wpdb->prefix . 'family_clans';
+        $locations = $wpdb->prefix . 'clan_locations';
+        $surnames = $wpdb->prefix . 'clan_surnames';
+
+        $wpdb->update($clans, array(
+            'clan_name' => sanitize_text_field($data['clan_name']),
+            'description' => sanitize_textarea_field($data['description']),
+            'origin_year' => !empty($data['origin_year']) ? intval($data['origin_year']) : null
+        ), array('id' => $id));
+
+        // Replace related data (simple approach for now)
+        $wpdb->delete($locations, array('clan_id' => $id));
+        $wpdb->delete($surnames, array('clan_id' => $id));
+
+        foreach ($data['locations'] as $loc) {
+            $wpdb->insert($locations, array('clan_id' => $id, 'location_name' => sanitize_text_field($loc)));
+        }
+        foreach ($data['surnames'] as $sn) {
+            $wpdb->insert($surnames, array('clan_id' => $id, 'last_name' => sanitize_text_field($sn)));
+        }
+
+        return true;
+    }
+
+    // Delete clan
+    public static function delete_clan($id)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'family_clans';
+        return $wpdb->delete($table, array('id' => intval($id)));
+    }
+}
