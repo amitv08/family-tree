@@ -1,17 +1,9 @@
 <?php
-if (!is_user_logged_in()) {
-    wp_redirect('/family-login');
-    exit;
-}
-if (!current_user_can('manage_clans')) {
-    wp_die('You do not have permission to manage clans.');
-}
+$member_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$member = FamilyTreeDatabase::get_member($member_id);
+if (!$member)
+    wp_die('Member not found');
 
-if (!class_exists('FamilyTreeClanDatabase')) {
-    wp_die('Clan module not loaded.');
-}
-
-$clans = FamilyTreeClanDatabase::get_all_clans();
 wp_head();
 ?>
 
@@ -225,51 +217,36 @@ wp_head();
     <?php wp_head(); ?>
 </head>
 
-<body <?php body_class(); ?>>
-    <!-- 🔹 Global Top Menu -->
-    <nav class="top-menu">
-        <a href="/family-dashboard">🏠 Dashboard</a>
-        <a href="/browse-members">👨‍👩‍👧 Members</a>
-        <a href="/browse-clans" class="active">🏰 Clans</a>
-    </nav>
+<body <?php body_class(); ?>></body>
+<nav class="top-menu">
+    <a href="/family-dashboard">🏠 Dashboard</a>
+    <a href="/browse-members" class="active">👨‍👩‍👧 Members</a>
+    <a href="/browse-clans">🏰 Clans</a>
+</nav>
 
-    <div class="dashboard-container">
-        <h2>All Clans</h2>
-        <a href="/add-clan" class="btn btn-primary">➕ Add New Clan</a>
+<div class="dashboard-container">
+    <h2><?php echo esc_html($member->first_name . ' ' . $member->last_name); ?></h2>
 
-        <table class="family-table">
-            <thead>
-                <tr>
-                    <th>Clan Name</th>
-                    <th>Origin Year</th>
-                    <th>Created By</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if ($clans): ?>
-                    <?php foreach ($clans as $clan): ?>
-                        <tr>
-                            <td><?php echo esc_html($clan->clan_name); ?></td>
-                            <td><?php echo esc_html($clan->origin_year ?: 'N/A'); ?></td>
-                            <td><?php echo esc_html(get_the_author_meta('display_name', $clan->created_by)); ?></td>
-                            <td>
-                                <a href="/view-clan?id=<?php echo $clan->id; ?>" class="btn btn-view">View</a>
-                                <a href="/edit-clan?id=<?php echo $clan->id; ?>" class="btn btn-edit">Edit</a>
-                                <button class="btn btn-delete" data-id="<?php echo $clan->id; ?>">Delete</button>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="4">No clans found.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+    <div class="clan-details">
+        <h3>Clan Details</h3>
+        <p><strong>Clan:</strong> <?php echo esc_html(FamilyTreeDatabase::get_clan_name($member->clan_id)); ?></p>
+        <p><strong>Clan Location:</strong>
+            <?php echo esc_html(FamilyTreeDatabase::get_clan_location_name($member->clan_location_id)); ?></p>
+        <p><strong>Clan Surname:</strong>
+            <?php echo esc_html(FamilyTreeDatabase::get_clan_surname_name($member->clan_surname_id)); ?></p>
     </div>
 
+    <h3>Personal Info</h3>
+    <p><strong>Birth:</strong> <?php echo esc_html($member->birth_date ?: '-'); ?></p>
+    <p><strong>Death:</strong> <?php echo esc_html($member->death_date ?: '-'); ?></p>
+    <p><strong>Gender:</strong> <?php echo esc_html($member->gender ?: '-'); ?></p>
+    <div style="margin-top:20px;">
+        <a href="/edit-member?id=<?php echo intval($member_id); ?>" class="btn btn-primary">Edit</a>
+        <a href="/browse-members" class="btn btn-secondary">Back</a>
+    </div>
+</div>
+
+<?php wp_footer(); ?>
 </body>
 
 </html>
-<?php wp_footer(); ?>
