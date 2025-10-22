@@ -1,9 +1,4 @@
 <?php
-/**
- * Clan database handler
- * Handles CRUD for clans, locations, and surnames.
- */
-
 if (!class_exists('FamilyTreeClanDatabase')) {
 
 class FamilyTreeClanDatabase {
@@ -19,42 +14,44 @@ class FamilyTreeClanDatabase {
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
         // clan table
-        $sql1 = "CREATE TABLE $clans_table (
+        $sql1 = "CREATE TABLE IF NOT EXISTS $clans_table (
             id MEDIUMINT(9) NOT NULL AUTO_INCREMENT,
             clan_name VARCHAR(150) NOT NULL,
             description TEXT NULL,
             origin_year SMALLINT(4) NULL,
-            created_by MEDIUMINT(9) NOT NULL,
+            created_by MEDIUMINT(9) NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY created_by (created_by)
+            PRIMARY KEY (id)
         ) $charset_collate;";
 
         // locations table
-        $sql2 = "CREATE TABLE $locations_table (
+        $sql2 = "CREATE TABLE IF NOT EXISTS $locations_table (
             id MEDIUMINT(9) NOT NULL AUTO_INCREMENT,
             clan_id MEDIUMINT(9) NOT NULL,
             location_name VARCHAR(150) NOT NULL,
             is_primary TINYINT(1) DEFAULT 0,
+            created_by MEDIUMINT(9) NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY clan_id (clan_id)
+            PRIMARY KEY (id)
         ) $charset_collate;";
 
         // surnames table
-        $sql3 = "CREATE TABLE $surnames_table (
+        $sql3 = "CREATE TABLE IF NOT EXISTS $surnames_table (
             id MEDIUMINT(9) NOT NULL AUTO_INCREMENT,
             clan_id MEDIUMINT(9) NOT NULL,
             last_name VARCHAR(100) NOT NULL,
             is_primary TINYINT(1) DEFAULT 0,
+            created_by MEDIUMINT(9) NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY clan_id (clan_id)
+            PRIMARY KEY (id)
         ) $charset_collate;";
 
         dbDelta($sql1);
         dbDelta($sql2);
         dbDelta($sql3);
+
+        // Ensure audit columns and FK constraints
+        FamilyTreeDatabase::apply_schema_updates();
     }
 
     public static function add_clan($data) {
@@ -63,7 +60,6 @@ class FamilyTreeClanDatabase {
         $locations_table = $wpdb->prefix . 'clan_locations';
         $surnames_table = $wpdb->prefix . 'clan_surnames';
 
-        // Basic validation
         if (empty($data['clan_name'])) {
             return new WP_Error('missing_name', 'Clan name is required');
         }
@@ -74,12 +70,17 @@ class FamilyTreeClanDatabase {
             return new WP_Error('missing_surnames', 'At least one surname is required');
         }
 
+        $now = current_time('mysql');
+
         $inserted = $wpdb->insert($clan_table, array(
             'clan_name'   => sanitize_text_field($data['clan_name']),
             'description' => isset($data['description']) ? sanitize_textarea_field($data['description']) : '',
             'origin_year' => !empty($data['origin_year']) ? intval($data['origin_year']) : null,
-            'created_by'  => get_current_user_id()
-        ), array('%s','%s','%d','%d'));
+            'created_by'  => get_current_user_id(),
+            'created_at'  => $now,
+            'updated_by'  => get_current_user_id(),
+            'updated_at'  => $now
+        ), array('%s','%s','%d','%d','%s','%d','%s'));
 
         if ($inserted === false) {
             error_log('FamilyTreeClanDatabase::add_clan error: ' . $wpdb->last_error);
@@ -99,8 +100,10 @@ class FamilyTreeClanDatabase {
             $wpdb->insert($locations_table, array(
                 'clan_id' => $clan_id,
                 'location_name' => $loc_name,
-                'is_primary' => 0
-            ), array('%d','%s','%d'));
+                'is_primary' => 0,
+                'created_by' => get_current_user_id(),
+                'created_at' => $now
+            ), array('%d','%s','%d','%d','%s'));
         }
 
         // Insert surnames
@@ -110,8 +113,10 @@ class FamilyTreeClanDatabase {
             $wpdb->insert($surnames_table, array(
                 'clan_id' => $clan_id,
                 'last_name' => $sn_name,
-                'is_primary' => 0
-            ), array('%d','%s','%d'));
+                'is_primary' => 0,
+                'created_by' => get_current_user_id(),
+                'created_at' => $now
+            ), array('%d','%s','%d','%d','%s'));
         }
 
         return $clan_id;
@@ -132,8 +137,8 @@ class FamilyTreeClanDatabase {
         $clan = $wpdb->get_row($wpdb->prepare("SELECT * FROM $clans WHERE id = %d", $id));
         if (!$clan) return null;
 
-        $clan->locations = $wpdb->get_col($wpdb->prepare("SELECT location_name FROM $locations WHERE clan_id = %d", $id));
-        $clan->surnames  = $wpdb->get_col($wpdb->prepare("SELECT last_name FROM $surnames WHERE clan_id = %d", $id));
+        $clan->locations = $wpdb->get_results($wpdb->prepare("SELECT id, location_name FROM $locations WHERE clan_id = %d", $id), OBJECT);
+        $clan->surnames  = $wpdb->get_results($wpdb->prepare("SELECT id, last_name FROM $surnames WHERE clan_id = %d", $id), OBJECT);
 
         return $clan;
     }
@@ -144,11 +149,15 @@ class FamilyTreeClanDatabase {
         $locations = $wpdb->prefix . 'clan_locations';
         $surnames = $wpdb->prefix . 'clan_surnames';
 
+        $now = current_time('mysql');
+
         $wpdb->update($clans, array(
             'clan_name'   => sanitize_text_field($data['clan_name']),
             'description' => isset($data['description']) ? sanitize_textarea_field($data['description']) : '',
-            'origin_year' => !empty($data['origin_year']) ? intval($data['origin_year']) : null
-        ), array('id' => $id), array('%s','%s','%d'), array('%d'));
+            'origin_year' => !empty($data['origin_year']) ? intval($data['origin_year']) : null,
+            'updated_by'  => get_current_user_id(),
+            'updated_at'  => $now
+        ), array('id' => $id), array('%s','%s','%d','%d','%s'), array('%d'));
 
         // Replace related data: delete old and insert new
         $wpdb->delete($locations, array('clan_id' => $id));
@@ -158,7 +167,12 @@ class FamilyTreeClanDatabase {
             foreach ($data['locations'] as $loc) {
                 $loc_name = sanitize_text_field($loc);
                 if ($loc_name === '') continue;
-                $wpdb->insert($locations, array('clan_id' => $id, 'location_name' => $loc_name), array('%d','%s'));
+                $wpdb->insert($locations, array(
+                    'clan_id' => $id,
+                    'location_name' => $loc_name,
+                    'created_by' => get_current_user_id(),
+                    'created_at' => $now
+                ), array('%d','%s','%d','%s'));
             }
         }
 
@@ -166,7 +180,12 @@ class FamilyTreeClanDatabase {
             foreach ($data['surnames'] as $sn) {
                 $sn_name = sanitize_text_field($sn);
                 if ($sn_name === '') continue;
-                $wpdb->insert($surnames, array('clan_id' => $id, 'last_name' => $sn_name), array('%d','%s'));
+                $wpdb->insert($surnames, array(
+                    'clan_id' => $id,
+                    'last_name' => $sn_name,
+                    'created_by' => get_current_user_id(),
+                    'created_at' => $now
+                ), array('%d','%s','%d','%s'));
             }
         }
 
@@ -176,7 +195,6 @@ class FamilyTreeClanDatabase {
     public static function delete_clan($id) {
         global $wpdb;
         $table = $wpdb->prefix . 'family_clans';
-        // WP DB will not cascade automatically unless foreign keys exist. We used separate tables so delete child rows too:
         $locations = $wpdb->prefix . 'clan_locations';
         $surnames = $wpdb->prefix . 'clan_surnames';
         $wpdb->delete($locations, array('clan_id' => $id));

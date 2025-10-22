@@ -157,3 +157,77 @@
     border-radius: 4px;
     border-left: 3px solid #007cba;
 }
+
+/* FamilyTree plugin page layout overrides */
+body.family-tree-page {
+    font-family: system-ui, sans-serif;
+    background: #f9fafb;
+    color: #222;
+    margin: 0;
+    padding: 0;
+}
+
+.top-menu {
+    background: #1f2937;
+    padding: 10px 20px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+.top-menu a {
+    color: #e5e7eb;
+    text-decoration: none;
+    font-weight: 500;
+}
+.top-menu a.active, .top-menu a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+.dashboard-container {
+    max-width: 900px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px 40px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.dashboard-container h2 {
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 10px;
+    margin-bottom: 25px;
+}
+
+form .form-row {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+}
+label { font-weight: 600; margin-bottom: 5px; }
+input[type=text], input[type=date], select, textarea {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 14px;
+}
+textarea { min-height: 80px; }
+
+.form-actions {
+    margin-top: 25px;
+    display: flex;
+    gap: 15px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: 500;
+}
+.btn-primary { background: #2563eb; color: #fff; border: none; }
+.btn-primary:hover { background: #1e40af; }
+.btn { background: #e5e7eb; color: #111827; }
+.btn:hover { background: #d1d5db; }
