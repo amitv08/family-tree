@@ -1,0 +1,1 @@
+<?php $page_title='Dashboard'; include __DIR__.'/parts/plugin-header.php'; echo '<h2>Dashboard</h2><p><a href="/add-member">Add Member</a> | <a href="/browse-members">Browse Members</a></p>'; include __DIR__.'/parts/plugin-footer.php'; ?>

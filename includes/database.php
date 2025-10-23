@@ -338,6 +338,71 @@ class FamilyTreeDatabase {
         return true;
     }
 
+    public static function search_members($query, $limit = 20) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'family_members';
+    $q = '%' . $wpdb->esc_like($query) . '%';
+    
+    return $wpdb->get_results($wpdb->prepare(
+        "SELECT id, first_name, last_name, birth_date FROM $table 
+         WHERE (first_name LIKE %s OR last_name LIKE %s)
+         AND is_deleted = 0
+         ORDER BY last_name, first_name
+         LIMIT %d",
+        $q, $q, $limit
+    ));
+}
+
+public static function validate_member_data($data, $member_id = null) {
+    $errors = [];
+    
+    // If editing, check against current ID
+    $current_id = $member_id ? intval($member_id) : null;
+    
+    $parent1_id = !empty($data['parent1_id']) ? intval($data['parent1_id']) : null;
+    $parent2_id = !empty($data['parent2_id']) ? intval($data['parent2_id']) : null;
+    
+    // Check: Person cannot be their own parent
+    if ($current_id && ($parent1_id == $current_id || $parent2_id == $current_id)) {
+        $errors[] = 'A person cannot be their own parent.';
+    }
+    
+    // Check: Parent 1 and Parent 2 must be different
+    if ($parent1_id && $parent2_id && $parent1_id == $parent2_id) {
+        $errors[] = 'Parent 1 and Parent 2 must be different people.';
+    }
+    
+    // Check: Dates make sense
+    if (!empty($data['birth_date']) && !empty($data['death_date'])) {
+        $birth = strtotime($data['birth_date']);
+        $death = strtotime($data['death_date']);
+        
+        if ($death < $birth) {
+            $errors[] = 'Death date cannot be before birth date.';
+        }
+        
+        $age = ($death - $birth) / (365.25 * 24 * 60 * 60);
+        if ($age > 150) {
+            $errors[] = 'Age seems unrealistic (over 150 years). Please verify dates.';
+        }
+    }
+    
+    // Check: Birth year is reasonable
+    if (!empty($data['birth_date'])) {
+        $birth_year = (int)date('Y', strtotime($data['birth_date']));
+        $current_year = date('Y');
+        
+        if ($birth_year < 1800) {
+            $errors[] = 'Birth year seems too old. Please verify.';
+        }
+        if ($birth_year > $current_year) {
+            $errors[] = 'Birth year cannot be in the future.';
+        }
+    }
+    
+    return $errors;
+}
+
     // Soft delete / restore helpers
     public static function soft_delete_member($id) {
         global $wpdb;

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Family Tree
  * Description: Complete family tree management system with clans and members.
- * Version: 2.3
+ * Version: 2.3.1
  * Author: Amit Vengsarkar
  */
 
@@ -58,6 +58,7 @@ class FamilyTreePlugin
         // inside constructor (add these)
         add_action('wp_ajax_soft_delete_member', [$this, 'ajax_soft_delete_member']);
         add_action('wp_ajax_restore_member', [$this, 'ajax_restore_member']);
+        add_action('wp_ajax_search_members_select2', [$this, 'ajax_search_members_select2']);
 
     }
 
@@ -175,11 +176,15 @@ class FamilyTreePlugin
     public function enqueue_scripts()
     {
         wp_enqueue_style('family-tree-style', FAMILY_TREE_URL . 'assets/css/style.css', [], '2.3');
-        wp_enqueue_script('jquery');
 
+        // Add Select2
+        wp_enqueue_style('select2-style', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css');
+        wp_enqueue_script('select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', ['jquery']);
+
+        wp_enqueue_script('jquery');
         wp_enqueue_script('family-tree-main', FAMILY_TREE_URL . 'assets/js/script.js', ['jquery'], '2.3', true);
         wp_enqueue_script('family-tree-clans', FAMILY_TREE_URL . 'assets/js/clans.js', ['jquery'], '2.3', true);
-        wp_enqueue_script('family-tree-members', FAMILY_TREE_URL . 'assets/js/members.js', ['jquery'], '2.3', true);
+        wp_enqueue_script('family-tree-members', FAMILY_TREE_URL . 'assets/js/members.js', ['jquery', 'select2'], '2.3', true);
 
         wp_localize_script('family-tree-members', 'family_tree', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -233,21 +238,35 @@ class FamilyTreePlugin
         wp_send_json_success($clans);
     }
 
-    public function ajax_add_family_member()
-    {
-        check_ajax_referer('family_tree_nonce', 'nonce');
-        $data = $_POST;
-        $result = FamilyTreeDatabase::add_member($data);
-        $result ? wp_send_json_success('Member added successfully') : wp_send_json_error('Failed to add member');
+public function ajax_add_family_member() {
+    check_ajax_referer('family_tree_nonce', 'nonce');
+    $data = $_POST;
+    
+    // Validate first
+    $validation_errors = FamilyTreeDatabase::validate_member_data($data);
+    if (!empty($validation_errors)) {
+        wp_send_json_error(implode(' ', $validation_errors));
+        return;
     }
+    
+    $result = FamilyTreeDatabase::add_member($data);
+    $result ? wp_send_json_success('Member added successfully') : wp_send_json_error('Failed to add member');
+}
 
-    public function ajax_update_family_member()
-    {
-        check_ajax_referer('family_tree_nonce', 'nonce');
-        $id = intval($_POST['member_id']);
-        $ok = FamilyTreeDatabase::update_member($id, $_POST);
-        $ok ? wp_send_json_success('Member updated successfully') : wp_send_json_error('Failed to update member');
+public function ajax_update_family_member() {
+    check_ajax_referer('family_tree_nonce', 'nonce');
+    $id = intval($_POST['member_id']);
+    
+    // Validate first
+    $validation_errors = FamilyTreeDatabase::validate_member_data($_POST, $id);
+    if (!empty($validation_errors)) {
+        wp_send_json_error(implode(' ', $validation_errors));
+        return;
     }
+    
+    $ok = FamilyTreeDatabase::update_member($id, $_POST);
+    $ok ? wp_send_json_success('Member updated successfully') : wp_send_json_error('Failed to update member');
+}
 
     public function ajax_delete_family_member()
     {
@@ -268,6 +287,19 @@ class FamilyTreePlugin
             wp_send_json_error('Invalid member id');
         $ok = FamilyTreeDatabase::soft_delete_member($id);
         $ok ? wp_send_json_success('Member soft-deleted') : wp_send_json_error('Failed to delete member');
+    }
+
+    public function ajax_search_members_select2()
+    {
+        check_ajax_referer('family_tree_nonce', 'nonce');
+        $query = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+
+        if (strlen($query) < 1) {
+            wp_send_json([]);
+        }
+
+        $results = FamilyTreeDatabase::search_members($query, 20);
+        wp_send_json($results ?: []);
     }
 
     public function ajax_restore_member()
