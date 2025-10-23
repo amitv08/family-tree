@@ -1,275 +1,254 @@
 <?php
+/**
+ * Family Tree Plugin - Browse Clans Page
+ * List all family clans with management options
+ * Updated with professional design system
+ */
+
 if (!is_user_logged_in()) {
     wp_redirect('/family-login');
     exit;
 }
+
 if (!current_user_can('manage_clans')) {
     wp_die('You do not have permission to manage clans.');
 }
 
-if (!class_exists('FamilyTreeClanDatabase')) {
-    wp_die('Clan module not loaded.');
-}
-
 $clans = FamilyTreeClanDatabase::get_all_clans();
-wp_head();
+
+$breadcrumbs = [
+    ['label' => 'Dashboard', 'url' => '/family-dashboard'],
+    ['label' => 'Clans'],
+];
+$page_title = '🏰 Family Clans';
+$page_actions = '<a href="/add-clan" class="btn btn-primary btn-sm">➕ Add New Clan</a>';
+
+ob_start();
 ?>
 
-<!DOCTYPE html>
-<html <?php language_attributes(); ?>>
-
-<head>
-    <meta charset="<?php bloginfo('charset'); ?>">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Add Clan</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f0f1;
-            padding: 20px;
-        }
-
-        .add-clan-page {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .page-header h1 {
-            color: #333;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            text-decoration: none;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-back {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-back:hover {
-            background: #545b62;
-        }
-
-        .btn-primary {
-            background: #007cba;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #005a87;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #545b62;
-        }
-
-        .clan-form {
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
-        }
-
-        .form-section {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 8px;
-            border-left: 4px solid #007cba;
-        }
-
-        .form-section h3 {
-            margin-bottom: 20px;
-            color: #333;
-            font-size: 1.2em;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
-        }
-
-        input,
-        select,
-        textarea {
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #007cba;
-        }
-
-        input[type="file"] {
-            padding: 8px;
-            border: 2px dashed #e0e0e0;
-            background: #fafafa;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 15px;
-            justify-content: flex-end;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #e0e0e0;
-        }
-
-        #form-message {
-            margin-top: 20px;
-        }
-
-        .message {
-            padding: 15px;
-            border-radius: 5px;
-            font-weight: 500;
-        }
-
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .photo-preview {
-            margin-top: 10px;
-            text-align: center;
-        }
-
-        .photo-preview img {
-            max-width: 150px;
-            max-height: 150px;
-            border-radius: 8px;
-            border: 2px solid #e0e0e0;
-        }
-
-        .required {
-            color: #e53e3e;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            .form-actions {
-                flex-direction: column;
-            }
-
-            .page-header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-        }
-    </style>
-    <?php wp_head(); ?>
-</head>
-
-<body <?php body_class(); ?>>
-    <!-- 🔹 Global Top Menu -->
-    <nav class="top-menu">
-        <a href="/family-dashboard">🏠 Dashboard</a>
-        <a href="/browse-members">👨‍👩‍👧 Members</a>
-        <a href="/browse-clans" class="active">🏰 Clans</a>
-    </nav>
-
-    <div class="dashboard-container">
-        <h2>All Clans</h2>
-        <a href="/add-clan" class="btn btn-primary">➕ Add New Clan</a>
-
-        <table class="family-table">
-            <thead>
-                <tr>
-                    <th>Clan Name</th>
-                    <th>Origin Year</th>
-                    <th>Created By</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if ($clans): ?>
-                    <?php foreach ($clans as $clan): ?>
-                        <tr>
-                            <td><?php echo esc_html($clan->clan_name); ?></td>
-                            <td><?php echo esc_html($clan->origin_year ?: 'N/A'); ?></td>
-                            <td><?php echo esc_html(get_the_author_meta('display_name', $clan->created_by)); ?></td>
-                            <td>
-                                <a href="/view-clan?id=<?php echo $clan->id; ?>" class="btn btn-view">View</a>
-                                <a href="/edit-clan?id=<?php echo $clan->id; ?>" class="btn btn-edit">Edit</a>
-                                <button class="btn btn-delete" data-id="<?php echo $clan->id; ?>">Delete</button>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="4">No clans found.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+<?php if (empty($clans)): ?>
+    <!-- Empty State -->
+    <div class="alert alert-info">
+        <div class="alert-icon">📋</div>
+        <div class="alert-content">
+            <div class="alert-title">No Clans Yet</div>
+            <p class="alert-message">
+                Start by creating your first family clan. This will help organize members into family groups.
+            </p>
+            <a href="/add-clan" class="btn btn-primary" style="margin-top: var(--spacing-lg);">
+                ➕ Create Your First Clan
+            </a>
+        </div>
     </div>
 
-</body>
+<?php else: ?>
+    <!-- Stats Bar -->
+    <div class="grid grid-3" style="margin-bottom: var(--spacing-2xl);">
+        <div class="stat-card">
+            <div class="stat-card-icon">🏰</div>
+            <div class="stat-card-value"><?php echo count($clans); ?></div>
+            <p class="stat-card-label">Total Clans</p>
+        </div>
 
-</html>
-<?php wp_footer(); ?>
+        <div class="stat-card">
+            <div class="stat-card-icon">📍</div>
+            <div class="stat-card-value">
+                <?php
+                $total_locations = 0;
+                foreach ($clans as $c) {
+                    $total_locations += count($c->locations ?: []);
+                }
+                echo $total_locations;
+                ?>
+            </div>
+            <p class="stat-card-label">Locations</p>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-icon">🔤</div>
+            <div class="stat-card-value">
+                <?php
+                $total_surnames = 0;
+                foreach ($clans as $c) {
+                    $total_surnames += count($c->surnames ?: []);
+                }
+                echo $total_surnames;
+                ?>
+            </div>
+            <p class="stat-card-label">Surnames</p>
+        </div>
+    </div>
+
+    <!-- Clans Grid -->
+    <div class="grid grid-2" style="margin-bottom: var(--spacing-2xl);">
+        <?php foreach ($clans as $clan): ?>
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3 style="margin: 0; color: var(--color-primary);">
+                            🏰 <?php echo esc_html($clan->clan_name); ?>
+                        </h3>
+                        <?php if ($clan->origin_year): ?>
+                            <small style="color: var(--color-text-light);">
+                                Founded: <?php echo esc_html($clan->origin_year); ?>
+                            </small>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <?php if ($clan->description): ?>
+                        <p style="color: var(--color-text-secondary); margin-bottom: var(--spacing-lg);">
+                            <?php echo esc_html(wp_trim_words($clan->description, 30)); ?>
+                        </p>
+                    <?php endif; ?>
+
+                    <!-- Locations -->
+                    <?php if (!empty($clan->locations)): ?>
+                        <div style="margin-bottom: var(--spacing-lg);">
+                            <strong style="display: block; margin-bottom: var(--spacing-sm); color: var(--color-text-primary); font-size: var(--font-size-sm);">
+                                📍 Locations:
+                            </strong>
+                            <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
+                                <?php foreach ($clan->locations as $location): ?>
+                                    <span class="badge badge-primary">
+                                        <?php echo esc_html($location); ?>
+                                    </span>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Surnames -->
+                    <?php if (!empty($clan->surnames)): ?>
+                        <div style="margin-bottom: var(--spacing-lg);">
+                            <strong style="display: block; margin-bottom: var(--spacing-sm); color: var(--color-text-primary); font-size: var(--font-size-sm);">
+                                🔤 Surnames:
+                            </strong>
+                            <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
+                                <?php foreach ($clan->surnames as $surname): ?>
+                                    <span class="badge badge-secondary">
+                                        <?php echo esc_html($surname); ?>
+                                    </span>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Members Count -->
+                    <?php
+                    global $wpdb;
+                    $member_count = $wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(*) FROM {$wpdb->prefix}family_members WHERE clan_id = %d AND is_deleted = 0",
+                        $clan->id
+                    ));
+                    ?>
+                    <div style="padding-top: var(--spacing-lg); border-top: 1px solid var(--color-border); margin-top: var(--spacing-lg);">
+                        <small style="color: var(--color-text-light);">
+                            👥 <?php echo $member_count; ?> member<?php echo $member_count !== 1 ? 's' : ''; ?> in this clan
+                        </small>
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <a href="/view-clan?id=<?php echo intval($clan->id); ?>" class="btn btn-outline btn-sm">
+                        👁️ View
+                    </a>
+                    <a href="/edit-clan?id=<?php echo intval($clan->id); ?>" class="btn btn-primary btn-sm">
+                        ✏️ Edit
+                    </a>
+                    <button class="btn btn-danger btn-sm delete-clan" data-id="<?php echo intval($clan->id); ?>" data-name="<?php echo esc_attr($clan->clan_name); ?>">
+                        🗑️ Delete
+                    </button>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
+<?php endif; ?>
+
+<!-- Delete Clan Modal -->
+<div id="deleteClanModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 style="margin: 0;">Delete Clan</h2>
+            <button class="modal-close" type="button">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete the clan "<strong id="deleteClanName"></strong>"?</p>
+            <div class="alert alert-danger" style="margin-top: var(--spacing-lg);">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-content">
+                    <div class="alert-title">Warning</div>
+                    <p class="alert-message" style="margin: 0;">
+                        This will NOT delete members in this clan, only the clan itself. Members will remain in the database but unlinked from any clan.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="confirmDelete" class="btn btn-danger">🗑️ Delete Clan</button>
+            <button id="cancelDelete" class="btn btn-outline">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+jQuery(document).ready(function($) {
+    let clanToDelete = null;
+
+    // Delete clan
+    $('.delete-clan').on('click', function() {
+        clanToDelete = $(this).data('id');
+        const clanName = $(this).data('name');
+        $('#deleteClanName').text(clanName);
+        $('#deleteClanModal').addClass('active');
+    });
+
+    // Close modal
+    $('.modal-close, #cancelDelete').on('click', function() {
+        $('#deleteClanModal').removeClass('active');
+        clanToDelete = null;
+    });
+
+    // Confirm delete
+    $('#confirmDelete').on('click', function() {
+        if (!clanToDelete) return;
+
+        const btn = $(this);
+        const originalText = btn.html();
+        btn.prop('disabled', true).html('<span class="loading-spinner"></span>');
+
+        $.post(family_tree.ajax_url, {
+            action: 'delete_clan',
+            nonce: family_tree.nonce,
+            id: clanToDelete
+        }, function(response) {
+            if (response.success) {
+                showToast('Clan deleted successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('Error: ' + (response.data || 'Failed to delete'), 'error');
+                btn.prop('disabled', false).html(originalText);
+                $('#deleteClanModal').removeClass('active');
+            }
+        }).fail(function() {
+            showToast('Connection error. Please try again.', 'error');
+            btn.prop('disabled', false).html(originalText);
+            $('#deleteClanModal').removeClass('active');
+        });
+    });
+
+    // Close modal on background click
+    $('#deleteClanModal').on('click', function(e) {
+        if (e.target === this) {
+            $(this).removeClass('active');
+        }
+    });
+});
+</script>
+
+<?php
+$page_content = ob_get_clean();
+include FAMILY_TREE_PATH . 'templates/components/page-layout.php';
+?>

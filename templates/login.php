@@ -1,355 +1,403 @@
 <?php
+/**
+ * Family Tree Plugin - Login Page
+ * Updated with professional design system
+ */
+
 if (is_user_logged_in()) {
     wp_redirect('/family-dashboard');
     exit;
 }
 ?>
+
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
-
 <head>
     <meta charset="<?php bloginfo('charset'); ?>">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Family Tree Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Family Tree - Manage your genealogy online">
+    <title>Login - <?php bloginfo('name'); ?></title>
+    <?php wp_head(); ?>
+    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* Login Page Specific Styles */
+        body.login-page {
+            background: linear-gradient(135deg, #007cba 0%, #005a87 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: var(--spacing-lg);
         }
 
         .login-container {
-            background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
             width: 100%;
-            max-width: 450px;
-            position: relative;
+            max-width: 420px;
+        }
+
+        .login-card {
+            background: var(--color-bg-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: var(--spacing-2xl);
+            animation: slideUp 0.5s ease-out;
         }
 
         .login-header {
             text-align: center;
-            margin-bottom: 35px;
+            margin-bottom: var(--spacing-2xl);
         }
 
-        .login-header h2 {
-            color: #333;
-            font-size: 28px;
-            margin-bottom: 8px;
-            font-weight: 600;
+        .login-logo {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
+            display: block;
+        }
+
+        .login-header h1 {
+            font-size: var(--font-size-xl);
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-sm);
         }
 
         .login-header p {
-            color: #666;
-            font-size: 16px;
+            color: var(--color-text-secondary);
+            margin: 0;
+            font-size: var(--font-size-sm);
         }
 
         .login-form {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: var(--spacing-lg);
         }
 
-        .form-group {
+        .form-group-login {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: var(--spacing-sm);
         }
 
-        .form-group label {
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
+        .form-group-login label {
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-sm);
         }
 
-        .form-group input[type="text"],
-        .form-group input[type="password"] {
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            background: #fafafa;
+        .form-group-login input[type="text"],
+        .form-group-login input[type="password"] {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-base);
+            font-size: var(--font-size-base);
+            font-family: var(--font-family-base);
+            transition: all var(--transition-fast);
         }
 
-        .form-group input[type="text"]:focus,
-        .form-group input[type="password"]:focus {
+        .form-group-login input[type="text"]:focus,
+        .form-group-login input[type="password"]:focus {
             outline: none;
-            border-color: #007cba;
-            background: white;
+            border-color: var(--color-primary);
             box-shadow: 0 0 0 3px rgba(0, 124, 186, 0.1);
         }
 
         .remember-me {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin: 10px 0;
+            gap: var(--spacing-sm);
+            font-size: var(--font-size-sm);
         }
 
         .remember-me input[type="checkbox"] {
             width: 18px;
             height: 18px;
-            accent-color: #007cba;
+            accent-color: var(--color-primary);
+            cursor: pointer;
         }
 
         .remember-me label {
-            color: #666;
-            font-size: 14px;
-            font-weight: normal;
+            cursor: pointer;
+            margin: 0;
         }
 
         .login-button {
-            padding: 15px;
-            background: #007cba;
+            padding: var(--spacing-lg) var(--spacing-xl);
+            background: var(--color-primary);
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: var(--radius-base);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
+            transition: all var(--transition-fast);
+            margin-top: var(--spacing-md);
         }
 
         .login-button:hover {
-            background: #005a87;
+            background: var(--color-primary-dark);
+            box-shadow: var(--shadow-md);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 124, 186, 0.3);
         }
 
         .login-button:active {
             transform: translateY(0);
         }
 
-        .register-link {
-            text-align: center;
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .register-link p {
-            color: #666;
-            margin-bottom: 10px;
-        }
-
-        .register-button {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #38A169;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .register-button:hover {
-            background: #2F855A;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(56, 161, 105, 0.3);
+        .login-button:disabled {
+            background: var(--color-secondary);
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
         }
 
         .forgot-password {
             text-align: center;
-            margin-top: 15px;
+            margin-top: var(--spacing-lg);
+            font-size: var(--font-size-sm);
         }
 
         .forgot-password a {
-            color: #007cba;
+            color: var(--color-primary);
             text-decoration: none;
-            font-size: 14px;
-            transition: color 0.3s ease;
+            transition: color var(--transition-fast);
         }
 
         .forgot-password a:hover {
-            color: #005a87;
+            color: var(--color-primary-dark);
             text-decoration: underline;
         }
 
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #f5c6cb;
-            margin-bottom: 20px;
+        .login-footer {
             text-align: center;
-            font-size: 14px;
+            margin-top: var(--spacing-2xl);
+            padding-top: var(--spacing-2xl);
+            border-top: 1px solid var(--color-border);
         }
 
-        .demo-notice {
-            background: #e7f3ff;
-            color: #0066cc;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #b3d9ff;
-            margin-bottom: 20px;
-            text-align: center;
-            font-size: 14px;
+        .login-footer p {
+            color: var(--color-text-secondary);
+            margin: 0 0 var(--spacing-lg) 0;
+            font-size: var(--font-size-sm);
         }
 
-        .family-logo {
+        .register-button {
+            display: inline-block;
+            padding: var(--spacing-md) var(--spacing-xl);
+            background: var(--color-success);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--radius-base);
+            font-weight: var(--font-weight-semibold);
+            transition: all var(--transition-fast);
+            border: none;
+            cursor: pointer;
+            width: 100%;
             text-align: center;
-            margin-bottom: 10px;
         }
 
-        .family-logo span {
-            font-size: 48px;
+        .register-button:hover {
+            background: #1e7e34;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .login-message {
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-base);
+            margin-bottom: var(--spacing-lg);
+            display: none;
+        }
+
+        .login-message.error {
+            background: var(--color-danger-light);
+            color: var(--color-danger);
+            border: 1px solid var(--color-danger);
             display: block;
-            margin-bottom: 10px;
+        }
+
+        .login-message.success {
+            background: var(--color-success-light);
+            color: var(--color-success);
+            border: 1px solid var(--color-success);
+            display: block;
+        }
+
+        .login-message.info {
+            background: var(--color-info-light);
+            color: var(--color-info);
+            border: 1px solid var(--color-info);
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         @media (max-width: 480px) {
-            .login-container {
-                padding: 30px 25px;
+            .login-card {
+                padding: var(--spacing-xl);
             }
-            
-            .login-header h2 {
-                font-size: 24px;
-            }
-            
-            .form-group input[type="text"],
-            .form-group input[type="password"] {
-                padding: 12px;
-                font-size: 14px;
-            }
-            
-            .login-button {
-                padding: 12px;
-                font-size: 14px;
-            }
-        }
 
-        /* Custom styling for WordPress login form elements */
-        #loginform {
-            background: none;
-            border: none;
-            box-shadow: none;
-            padding: 0;
-            margin: 0;
-        }
+            .login-header h1 {
+                font-size: var(--font-size-lg);
+            }
 
-        #loginform p {
-            margin-bottom: 0;
-        }
-
-        .login .message {
-            background: #e7f3ff;
-            color: #0066cc;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #b3d9ff;
-            margin-bottom: 20px;
-            text-align: center;
-            font-size: 14px;
+            .login-logo {
+                font-size: 2.5rem;
+            }
         }
     </style>
-    <?php wp_head(); ?>
 </head>
 
-<body class="login">
+<body class="login-page">
     <div class="login-container">
-        <div class="family-logo">
-            <span>👨‍👩‍👧‍👦</span>
-        </div>
-        
-        <div class="login-header">
-            <h2>Family Tree Login</h2>
-            <p>Access your family history</p>
-        </div>
-
-        <?php
-        // Show any error messages
-        if (isset($_GET['login']) && $_GET['login'] == 'failed') {
-            echo '<div class="error-message">Invalid username or password. Please try again.</div>';
-        }
-        
-        // Show logout message
-        if (isset($_GET['loggedout']) && $_GET['loggedout'] == 'true') {
-            echo '<div class="demo-notice">You have been successfully logged out.</div>';
-        }
-        ?>
-
-        <form name="loginform" id="loginform" action="<?php echo esc_url(site_url('wp-login.php', 'login_post')); ?>" method="post" class="login-form">
-            <div class="form-group">
-                <label for="user_login">Username or Email</label>
-                <input type="text" name="log" id="user_login" class="input" value="" size="20" placeholder="Enter your username or email">
+        <div class="login-card">
+            <!-- Logo & Heading -->
+            <div class="login-header">
+                <span class="login-logo">🌳</span>
+                <h1>Family Tree</h1>
+                <p>Manage your genealogy online</p>
             </div>
 
-            <div class="form-group">
-                <label for="user_pass">Password</label>
-                <input type="password" name="pwd" id="user_pass" class="input" value="" size="20" placeholder="Enter your password">
-            </div>
+            <!-- Error/Success Messages -->
+            <?php if (isset($_GET['login']) && $_GET['login'] == 'failed'): ?>
+                <div class="login-message error">
+                    ❌ Invalid username or password. Please try again.
+                </div>
+            <?php endif; ?>
 
-            <div class="remember-me">
-                <input name="rememberme" type="checkbox" id="rememberme" value="forever">
-                <label for="rememberme">Remember Me</label>
-            </div>
+            <?php if (isset($_GET['loggedout']) && $_GET['loggedout'] == 'true'): ?>
+                <div class="login-message success">
+                    ✅ You have been logged out successfully. Goodbye!
+                </div>
+            <?php endif; ?>
 
-            <input type="submit" name="wp-submit" id="wp-submit" class="login-button" value="Log In">
-            <input type="hidden" name="redirect_to" value="/family-dashboard">
+            <?php if (isset($_GET['checkemail']) && $_GET['checkemail'] == 'confirm'): ?>
+                <div class="login-message info">
+                    ℹ️ Check your email for the confirmation link.
+                </div>
+            <?php endif; ?>
 
+            <!-- Login Form -->
+            <form name="loginform" id="loginform" action="<?php echo esc_url(site_url('wp-login.php', 'login_post')); ?>" method="post" class="login-form">
+                <!-- Username/Email -->
+                <div class="form-group-login">
+                    <label for="user_login">
+                        👤 Username or Email Address
+                    </label>
+                    <input 
+                        type="text" 
+                        name="log" 
+                        id="user_login" 
+                        class="input" 
+                        value="" 
+                        size="20" 
+                        placeholder="Enter your username or email"
+                        autocomplete="username"
+                        required
+                    >
+                </div>
+
+                <!-- Password -->
+                <div class="form-group-login">
+                    <label for="user_pass">
+                        🔐 Password
+                    </label>
+                    <input 
+                        type="password" 
+                        name="pwd" 
+                        id="user_pass" 
+                        class="input" 
+                        value="" 
+                        size="20" 
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+
+                <!-- Remember Me -->
+                <div class="remember-me">
+                    <input 
+                        name="rememberme" 
+                        type="checkbox" 
+                        id="rememberme" 
+                        value="forever"
+                    >
+                    <label for="rememberme">Remember me for 14 days</label>
+                </div>
+
+                <!-- Submit Button -->
+                <input 
+                    type="submit" 
+                    name="wp-submit" 
+                    id="wp-submit" 
+                    class="login-button" 
+                    value="Sign In"
+                >
+
+                <!-- Hidden Fields -->
+                <input type="hidden" name="redirect_to" value="/family-dashboard">
+            </form>
+
+            <!-- Forgot Password Link -->
             <div class="forgot-password">
-                <a href="<?php echo esc_url(wp_lostpassword_url()); ?>">Forgot your password?</a>
+                <a href="<?php echo esc_url(wp_lostpassword_url()); ?>">
+                    Forgot your password?
+                </a>
             </div>
-        </form>
 
-        <?php if (get_option('users_can_register')): ?>
-            <div class="register-link">
-                <p>Don't have an account?</p>
-                <a href="<?php echo esc_url(wp_registration_url()); ?>" class="register-button">Create Account</a>
+            <!-- Registration/Admin Message -->
+            <div class="login-footer">
+                <?php if (get_option('users_can_register')): ?>
+                    <p>Don't have an account yet?</p>
+                    <a href="<?php echo esc_url(wp_registration_url()); ?>" class="register-button">
+                        Create Account
+                    </a>
+                <?php else: ?>
+                    <div style="background: var(--color-info-light); padding: var(--spacing-lg); border-radius: var(--radius-base); color: var(--color-info); font-size: var(--font-size-sm);">
+                        <strong>📝 Need an account?</strong><br>
+                        Contact the administrator to request access to the family tree.
+                    </div>
+                <?php endif; ?>
             </div>
-        <?php else: ?>
-            <div class="demo-notice">
-                <p>Contact the administrator to request access to the family tree.</p>
-            </div>
-        <?php endif; ?>
+        </div>
+
+        <!-- Footer Text -->
+        <div style="text-align: center; margin-top: var(--spacing-2xl); color: rgba(255,255,255,0.8); font-size: var(--font-size-sm);">
+            <p style="margin: 0;">
+                © <?php echo date('Y'); ?> <?php bloginfo('name'); ?> • Family Tree Plugin v2.3
+            </p>
+        </div>
     </div>
 
-    <script>
-        // Add some interactivity
-        document.addEventListener('DOMContentLoaded', function() {
-            const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
-            
-            inputs.forEach(input => {
-                // Add focus effect
-                input.addEventListener('focus', function() {
-                    this.parentElement.classList.add('focused');
-                });
-                
-                input.addEventListener('blur', function() {
-                    if (this.value === '') {
-                        this.parentElement.classList.remove('focused');
-                    }
-                });
-            });
+    <?php wp_footer(); ?>
 
-            // Add loading state to login button
-            const loginForm = document.getElementById('loginform');
-            if (loginForm) {
-                loginForm.addEventListener('submit', function() {
-                    const submitButton = this.querySelector('#wp-submit');
-                    submitButton.value = 'Logging in...';
-                    submitButton.disabled = true;
-                });
+    <script>
+        // Disable submit button on form submit
+        document.getElementById('loginform')?.addEventListener('submit', function() {
+            document.getElementById('wp-submit').disabled = true;
+            document.getElementById('wp-submit').value = 'Signing in...';
+        });
+
+        // Auto-focus on first empty field
+        document.addEventListener('DOMContentLoaded', function() {
+            const userInput = document.getElementById('user_login');
+            const passInput = document.getElementById('user_pass');
+            
+            if (userInput && !userInput.value) {
+                userInput.focus();
+            } else if (passInput) {
+                passInput.focus();
             }
         });
     </script>
-
-    <?php wp_footer(); ?>
 </body>
-
 </html>

@@ -1,4 +1,9 @@
 <?php
+/**
+ * Family Tree Plugin - Admin Panel
+ * User management and system settings with professional design
+ */
+
 if (!is_user_logged_in() || !current_user_can('manage_family')) {
     wp_redirect('/family-login');
     exit;
@@ -16,663 +21,614 @@ $family_users = get_users(array(
 ));
 
 $current_user_id = get_current_user_id();
+
+$breadcrumbs = [
+    ['label' => 'Dashboard', 'url' => '/family-dashboard'],
+    ['label' => 'Admin Panel'],
+];
+$page_title = '⚙️ Administration Panel';
+$page_actions = '
+    <a href="/family-dashboard" class="btn btn-outline btn-sm">
+        ← Back to Dashboard
+    </a>
+';
+
+ob_start();
 ?>
-<!DOCTYPE html>
-<html <?php language_attributes(); ?>>
 
-<head>
-    <meta charset="<?php bloginfo('charset'); ?>">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Family Tree Admin</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<!-- Admin Tabs Navigation -->
+<div style="
+    display: flex;
+    gap: var(--spacing-lg);
+    border-bottom: 2px solid var(--color-border);
+    margin-bottom: var(--spacing-2xl);
+    flex-wrap: wrap;
+">
+    <button class="tab-button active" data-tab="users" style="
+        padding: var(--spacing-md) var(--spacing-lg);
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: var(--font-size-base);
+        color: var(--color-text-secondary);
+        border-bottom: 3px solid transparent;
+        transition: all var(--transition-fast);
+        font-weight: var(--font-weight-medium);
+    ">
+        👤 User Management
+    </button>
+    <button class="tab-button" data-tab="members" style="
+        padding: var(--spacing-md) var(--spacing-lg);
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: var(--font-size-base);
+        color: var(--color-text-secondary);
+        border-bottom: 3px solid transparent;
+        transition: all var(--transition-fast);
+        font-weight: var(--font-weight-medium);
+    ">
+        👥 Members Overview
+    </button>
+    <button class="tab-button" data-tab="settings" style="
+        padding: var(--spacing-md) var(--spacing-lg);
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: var(--font-size-base);
+        color: var(--color-text-secondary);
+        border-bottom: 3px solid transparent;
+        transition: all var(--transition-fast);
+        font-weight: var(--font-weight-medium);
+    ">
+        ⚙️ Settings
+    </button>
+</div>
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f0f1;
-            padding: 20px;
-        }
+<style>
+    .tab-button.active {
+        color: var(--color-primary) !important;
+        border-bottom-color: var(--color-primary) !important;
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+</style>
 
-        .family-admin-panel {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .admin-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            text-decoration: none;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: #007cba;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #005a87;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #545b62;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid #6c757d;
-            color: #6c757d;
-        }
-
-        .btn-outline:hover {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-        }
-
-        .btn-sm {
-            padding: 5px 10px;
-            font-size: 12px;
-        }
-
-        .admin-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .tab-button {
-            padding: 12px 24px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-size: 14px;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .tab-button.active {
-            border-bottom-color: #007cba;
-            color: #007cba;
-            font-weight: 600;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .tab-section {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 8px;
-            border-left: 4px solid #007cba;
-            margin-bottom: 30px;
-        }
-
-        .tab-section h3 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        label {
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
-        }
-
-        input, select, textarea {
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #007cba;
-        }
-
-        .users-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .users-table th,
-        .users-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .users-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .users-table tr:hover {
-            background: #f8f9fa;
-        }
-
-        .role-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .role-admin {
-            background: #dc3545;
-            color: white;
-        }
-
-        .role-editor {
-            background: #fd7e14;
-            color: white;
-        }
-
-        .role-viewer {
-            background: #6c757d;
-            color: white;
-        }
-
-        .user-actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .stat-number {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #007cba;
-            margin: 10px 0;
-        }
-
-        .message {
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            max-width: 400px;
-            width: 90%;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .close-modal {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #666;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .admin-header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-            
-            .admin-tabs {
-                flex-wrap: wrap;
-            }
-            
-            .users-table {
-                display: block;
-                overflow-x: auto;
-            }
-        }
-    </style>
-    <?php wp_head(); ?>
-</head>
-
-<body <?php body_class(); ?>>
-
-    <div class="family-admin-panel">
-        <div class="admin-header">
-            <h1>Family Tree Administration</h1>
-            <div class="admin-actions">
-                <a href="/family-dashboard" class="btn btn-secondary">← Back to Dashboard</a>
-                <a href="<?php echo wp_logout_url(home_url()); ?>" class="btn btn-outline">Logout</a>
-            </div>
-        </div>
-
-        <div class="admin-tabs">
-            <button class="tab-button active" data-tab="users">User Management</button>
-            <button class="tab-button" data-tab="members">Family Members</button>
-            <button class="tab-button" data-tab="settings">Settings</button>
-        </div>
-
-        <div class="tab-content active" id="users-tab">
-            <div class="tab-section">
-                <h3>Create New User</h3>
-                <form id="create-user-form" class="user-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="username">Username *</label>
-                            <input type="text" id="username" name="username" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Email *</label>
-                            <input type="email" id="email" name="email" required>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="first_name">First Name</label>
-                            <input type="text" id="first_name" name="first_name">
-                        </div>
-                        <div class="form-group">
-                            <label for="last_name">Last Name</label>
-                            <input type="text" id="last_name" name="last_name">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="password">Password *</label>
-                            <input type="password" id="password" name="password" required minlength="6">
-                            <small>Minimum 6 characters</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="confirm_password">Confirm Password *</label>
-                            <input type="password" id="confirm_password" name="confirm_password" required>
-                        </div>
-                    </div>
-
+<!-- ===== TAB 1: USER MANAGEMENT ===== -->
+<div class="tab-content active" id="users-tab">
+    <!-- Create User Section -->
+    <div class="section">
+        <h2 class="section-title">➕ Create New User</h2>
+        
+        <div class="container container-sm">
+            <form id="createUserForm" class="form">
+                <!-- Username & Email -->
+                <div class="form-row form-row-2">
                     <div class="form-group">
-                        <label for="role">User Role *</label>
-                        <select id="role" name="role" required>
-                            <option value="">Select Role</option>
-                            <option value="family_admin">Family Admin</option>
-                            <option value="family_editor">Family Editor</option>
-                            <option value="family_viewer">Family Viewer</option>
-                        </select>
+                        <label class="form-label required" for="username">Username</label>
+                        <input type="text" id="username" name="username" required placeholder="e.g., john_smith">
+                        <small class="form-help">Minimum 3 characters. No spaces.</small>
                     </div>
-
-                    <button type="submit" class="btn btn-primary">Create User</button>
-                </form>
-            </div>
-
-            <div class="tab-section">
-                <h3>Existing Users</h3>
-                <div class="users-list">
-                    <?php if ($family_users): ?>
-                        <table class="users-table">
-                            <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($family_users as $user): 
-                                    $roles = $user->roles;
-                                    $primary_role = !empty($roles) ? $roles[0] : 'No role';
-                                    $role_class = '';
-                                    if (strpos($primary_role, 'admin') !== false) $role_class = 'role-admin';
-                                    elseif (strpos($primary_role, 'editor') !== false) $role_class = 'role-editor';
-                                    elseif (strpos($primary_role, 'viewer') !== false) $role_class = 'role-viewer';
-                                ?>
-                                    <tr>
-                                        <td><?php echo esc_html($user->user_login); ?></td>
-                                        <td><?php echo esc_html($user->display_name); ?></td>
-                                        <td><?php echo esc_html($user->user_email); ?></td>
-                                        <td>
-                                            <select class="role-select <?php echo $role_class; ?>" data-user-id="<?php echo $user->ID; ?>" style="padding: 4px 8px; border-radius: 4px; border: none; color: white; font-weight: 500;">
-                                                <option value="family_admin" <?php selected($primary_role, 'family_admin'); ?>>Admin</option>
-                                                <option value="family_editor" <?php selected($primary_role, 'family_editor'); ?>>Editor</option>
-                                                <option value="family_viewer" <?php selected($primary_role, 'family_viewer'); ?>>Viewer</option>
-                                            </select>
-                                        </td>
-                                        <td class="user-actions">
-                                            <?php if ($user->ID != $current_user_id): ?>
-                                                <button class="btn btn-danger btn-sm delete-user" data-user-id="<?php echo $user->ID; ?>" data-username="<?php echo esc_attr($user->user_login); ?>">
-                                                    Delete
-                                                </button>
-                                            <?php else: ?>
-                                                <span style="color: #666; font-size: 12px;">Current User</span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    <?php else: ?>
-                        <p>No family users found.</p>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="members-tab">
-            <div class="tab-section">
-                <h3>Family Members Overview</h3>
-                <?php
-                $members = FamilyTreeDatabase::get_members();
-                $member_count = $members ? count($members) : 0;
-                ?>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h4>Total Members</h4>
-                        <div class="stat-number"><?php echo $member_count; ?></div>
-                    </div>
-                    <div class="stat-card">
-                        <h4>With Parents</h4>
-                        <div class="stat-number">
-                            <?php
-                            $with_parents = 0;
-                            if ($members) {
-                                foreach ($members as $member) {
-                                    if ($member->parent1_id || $member->parent2_id) {
-                                        $with_parents++;
-                                    }
-                                }
-                            }
-                            echo $with_parents;
-                            ?>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label required" for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required placeholder="john@example.com">
                     </div>
                 </div>
 
-                <div class="admin-actions">
-                    <a href="/add-member" class="btn btn-primary">Add New Member</a>
-                    <a href="/browse-members" class="btn btn-secondary">Browse Members</a>
-                    <a href="/family-tree" class="btn btn-outline">View Tree</a>
+                <!-- Name Fields -->
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label class="form-label" for="first_name">First Name</label>
+                        <input type="text" id="first_name" name="first_name" placeholder="John">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="last_name">Last Name</label>
+                        <input type="text" id="last_name" name="last_name" placeholder="Smith">
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="tab-content" id="settings-tab">
-            <div class="tab-section">
-                <h3>Family Tree Settings</h3>
-                <div class="settings-info">
-                    <p><strong>User Registration:</strong>
-                        <?php echo get_option('users_can_register') ? 'Enabled' : 'Disabled'; ?></p>
-                    <p><em>To enable user registration, go to Settings → General in WordPress admin.</em></p>
+                <!-- Password -->
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label class="form-label required" for="password">Password</label>
+                        <input type="password" id="password" name="password" required placeholder="Min. 8 characters">
+                        <small class="form-help">Minimum 8 characters recommended</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required" for="confirm_password">Confirm Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required placeholder="Re-enter password">
+                    </div>
                 </div>
-            </div>
+
+                <!-- Role Selection -->
+                <div class="form-group">
+                    <label class="form-label required" for="role">User Role</label>
+                    <select id="role" name="role" required>
+                        <option value="">-- Select Role --</option>
+                        <option value="family_admin">👑 Admin - Full access to manage members & users</option>
+                        <option value="family_editor">✏️ Editor - Can add & edit family members</option>
+                        <option value="family_viewer">👁️ Viewer - Read-only access</option>
+                    </select>
+                    <small class="form-help">Choose the access level for this user</small>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        ➕ Create User
+                    </button>
+                </div>
+
+                <!-- Message -->
+                <div id="createUserMessage" style="margin-top: var(--spacing-lg);"></div>
+            </form>
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-user-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Confirm User Deletion</h3>
-                <button class="close-modal">&times;</button>
+    <!-- Existing Users Section -->
+    <div class="section">
+        <h2 class="section-title">👥 Existing Users</h2>
+        
+        <?php if (empty($family_users)): ?>
+            <div class="alert alert-info">
+                <div class="alert-icon">ℹ️</div>
+                <div class="alert-content">
+                    <div class="alert-title">No users yet</div>
+                    <p class="alert-message">Create your first user above.</p>
+                </div>
             </div>
-            <p>Are you sure you want to delete user "<span id="delete-username"></span>"?</p>
-            <p style="color: #dc3545; font-size: 14px; margin-top: 10px;">
-                <strong>Warning:</strong> This action cannot be undone.
-            </p>
-            <div class="modal-actions">
-                <button id="confirm-delete" class="btn btn-danger">Delete User</button>
-                <button id="cancel-delete" class="btn btn-secondary">Cancel</button>
+        <?php else: ?>
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($family_users as $user):
+                            $roles = $user->roles;
+                            $primary_role = !empty($roles) ? $roles[0] : 'No role';
+                            $role_display = ucfirst(str_replace('family_', '', $primary_role));
+                        ?>
+                            <tr>
+                                <td>
+                                    <strong>@<?php echo esc_html($user->user_login); ?></strong>
+                                </td>
+                                <td><?php echo esc_html($user->display_name); ?></td>
+                                <td>
+                                    <a href="mailto:<?php echo esc_html($user->user_email); ?>">
+                                        <?php echo esc_html($user->user_email); ?>
+                                    </a>
+                                </td>
+                                <td>
+                                    <select class="role-select" data-user-id="<?php echo $user->ID; ?>" style="
+                                        padding: var(--spacing-sm) var(--spacing-md);
+                                        border-radius: var(--radius-sm);
+                                        border: none;
+                                        font-weight: var(--font-weight-medium);
+                                        background: var(--color-primary);
+                                        color: white;
+                                        cursor: pointer;
+                                    ">
+                                        <option value="family_admin" <?php selected($primary_role, 'family_admin'); ?>>Admin</option>
+                                        <option value="family_editor" <?php selected($primary_role, 'family_editor'); ?>>Editor</option>
+                                        <option value="family_viewer" <?php selected($primary_role, 'family_viewer'); ?>>Viewer</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <div class="btn-group" style="gap: var(--spacing-sm);">
+                                        <?php if ($user->ID != $current_user_id): ?>
+                                            <button class="btn btn-sm btn-danger delete-user" data-user-id="<?php echo $user->ID; ?>" data-username="<?php echo esc_attr($user->user_login); ?>">
+                                                🗑️ Delete
+                                            </button>
+                                        <?php else: ?>
+                                            <span style="
+                                                color: var(--color-text-light);
+                                                font-size: var(--font-size-sm);
+                                                padding: var(--spacing-sm) var(--spacing-md);
+                                            ">
+                                                👤 You
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- ===== TAB 2: MEMBERS OVERVIEW ===== -->
+<div class="tab-content" id="members-tab">
+    <div class="section">
+        <h2 class="section-title">📊 Family Members Overview</h2>
+        
+        <?php
+        $members = FamilyTreeDatabase::get_members();
+        $member_count = $members ? count($members) : 0;
+        $with_parents = 0;
+        $with_birthdates = 0;
+        $with_photos = 0;
+        
+        if ($members) {
+            foreach ($members as $member) {
+                if ($member->parent1_id || $member->parent2_id) $with_parents++;
+                if ($member->birth_date) $with_birthdates++;
+                if ($member->photo_url) $with_photos++;
+            }
+        }
+        ?>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-4" style="margin-bottom: var(--spacing-2xl);">
+            <div class="stat-card">
+                <div class="stat-card-icon">👥</div>
+                <div class="stat-card-value"><?php echo $member_count; ?></div>
+                <p class="stat-card-label">Total Members</p>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-icon">👨‍👩‍👧</div>
+                <div class="stat-card-value"><?php echo $with_parents; ?></div>
+                <p class="stat-card-label">With Parents Linked</p>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-icon">🎂</div>
+                <div class="stat-card-value"><?php echo $with_birthdates; ?></div>
+                <p class="stat-card-label">With Birth Dates</p>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-icon">📸</div>
+                <div class="stat-card-value"><?php echo $with_photos; ?></div>
+                <p class="stat-card-label">With Photos</p>
             </div>
         </div>
+
+        <!-- Progress Indicators -->
+        <div style="
+            background: var(--color-bg-white);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        ">
+            <h3 style="color: var(--color-text-primary); margin: 0 0 var(--spacing-lg) 0;">
+                📈 Data Completeness
+            </h3>
+
+            <?php if ($member_count > 0): ?>
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-sm);">
+                        <span style="font-weight: var(--font-weight-medium); color: var(--color-text-primary);">
+                            Members with Parents
+                        </span>
+                        <span style="color: var(--color-primary); font-weight: var(--font-weight-semibold);">
+                            <?php echo round(($with_parents / $member_count) * 100); ?>%
+                        </span>
+                    </div>
+                    <div style="
+                        background: var(--color-bg-light);
+                        border-radius: var(--radius-full);
+                        height: 8px;
+                        overflow: hidden;
+                    ">
+                        <div style="
+                            background: var(--color-primary);
+                            height: 100%;
+                            width: <?php echo round(($with_parents / $member_count) * 100); ?>%;
+                            transition: width 0.3s ease;
+                        "></div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-sm);">
+                        <span style="font-weight: var(--font-weight-medium); color: var(--color-text-primary);">
+                            Members with Birth Dates
+                        </span>
+                        <span style="color: var(--color-primary); font-weight: var(--font-weight-semibold);">
+                            <?php echo round(($with_birthdates / $member_count) * 100); ?>%
+                        </span>
+                    </div>
+                    <div style="
+                        background: var(--color-bg-light);
+                        border-radius: var(--radius-full);
+                        height: 8px;
+                        overflow: hidden;
+                    ">
+                        <div style="
+                            background: var(--color-success);
+                            height: 100%;
+                            width: <?php echo round(($with_birthdates / $member_count) * 100); ?>%;
+                            transition: width 0.3s ease;
+                        "></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-sm);">
+                        <span style="font-weight: var(--font-weight-medium); color: var(--color-text-primary);">
+                            Members with Photos
+                        </span>
+                        <span style="color: var(--color-primary); font-weight: var(--font-weight-semibold);">
+                            <?php echo round(($with_photos / $member_count) * 100); ?>%
+                        </span>
+                    </div>
+                    <div style="
+                        background: var(--color-bg-light);
+                        border-radius: var(--radius-full);
+                        height: 8px;
+                        overflow: hidden;
+                    ">
+                        <div style="
+                            background: var(--color-warning);
+                            height: 100%;
+                            width: <?php echo round(($with_photos / $member_count) * 100); ?>%;
+                            transition: width 0.3s ease;
+                        "></div>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="alert alert-info">
+                    <div class="alert-icon">ℹ️</div>
+                    <div class="alert-content">
+                        <p class="alert-message" style="margin: 0;">
+                            No members in the database yet.
+                        </p>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="btn-group">
+            <a href="/add-member" class="btn btn-primary">
+                ➕ Add Member
+            </a>
+            <a href="/browse-members" class="btn btn-secondary">
+                📋 Browse All Members
+            </a>
+            <a href="/family-tree" class="btn btn-outline">
+                🌳 View Tree
+            </a>
+        </div>
     </div>
+</div>
 
-    <div id="admin-messages"></div>
+<!-- ===== TAB 3: SETTINGS ===== -->
+<div class="tab-content" id="settings-tab">
+    <div class="section">
+        <h2 class="section-title">⚙️ System Settings</h2>
+        
+        <div style="
+            background: var(--color-bg-white);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+        ">
+            <div style="margin-bottom: var(--spacing-lg);">
+                <h3 style="color: var(--color-text-primary); margin: 0 0 var(--spacing-md) 0;">
+                    👥 User Registration
+                </h3>
+                <p style="color: var(--color-text-secondary); margin: 0 0 var(--spacing-md) 0; font-size: var(--font-size-sm);">
+                    Current Status: 
+                    <strong style="color: <?php echo get_option('users_can_register') ? 'var(--color-success)' : 'var(--color-danger)'; ?>;">
+                        <?php echo get_option('users_can_register') ? '✅ Enabled' : '❌ Disabled'; ?>
+                    </strong>
+                </p>
+                <p style="color: var(--color-text-light); font-size: var(--font-size-sm); margin: 0;">
+                    To enable/disable user registration, go to WordPress Admin → Settings → General → Membership
+                </p>
+            </div>
 
-    <script>
-        jQuery(document).ready(function ($) {
-            // Tab functionality
-            $('.tab-button').on('click', function () {
-                var tabId = $(this).data('tab');
+            <hr style="border: none; border-top: 1px solid var(--color-border); margin: var(--spacing-lg) 0;">
 
-                $('.tab-button').removeClass('active');
-                $(this).addClass('active');
+            <div style="margin-bottom: var(--spacing-lg);">
+                <h3 style="color: var(--color-text-primary); margin: 0 0 var(--spacing-md) 0;">
+                    🔐 Security
+                </h3>
+                <ul style="margin: 0; padding-left: var(--spacing-xl); font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+                    <li style="margin-bottom: var(--spacing-sm);">All AJAX requests are protected with nonce tokens</li>
+                    <li style="margin-bottom: var(--spacing-sm);">User permissions are validated for all operations</li>
+                    <li style="margin-bottom: var(--spacing-sm);">Database queries use prepared statements</li>
+                    <li>Data is sanitized and escaped on output</li>
+                </ul>
+            </div>
 
-                $('.tab-content').removeClass('active');
-                $('#' + tabId + '-tab').addClass('active');
-            });
+            <hr style="border: none; border-top: 1px solid var(--color-border); margin: var(--spacing-lg) 0;">
 
-            // Create user form
-            $('#create-user-form').on('submit', function (e) {
-                e.preventDefault();
-
-                // Validate passwords match
-                var password = $('#password').val();
-                var confirmPassword = $('#confirm_password').val();
-                
-                if (password !== confirmPassword) {
-                    $('#admin-messages').html('<div class="message error">Passwords do not match.</div>');
-                    return;
-                }
-
-                if (password.length < 6) {
-                    $('#admin-messages').html('<div class="message error">Password must be at least 6 characters long.</div>');
-                    return;
-                }
-
-                var formData = $(this).serializeArray();
-                var data = {};
-
-                formData.forEach(function (field) {
-                    data[field.name] = field.value;
-                });
-
-                data.action = 'create_family_user';
-                data.nonce = family_tree.nonce;
-
-                // Show loading state
-                var submitBtn = $(this).find('button[type="submit"]');
-                var originalText = submitBtn.text();
-                submitBtn.text('Creating...').prop('disabled', true);
-
-                $.post(family_tree.ajax_url, data, function (response) {
-                    if (response.success) {
-                        $('#admin-messages').html('<div class="message success">' + response.data + '</div>');
-                        $('#create-user-form')[0].reset();
-                        setTimeout(function () {
-                            location.reload();
-                        }, 2000);
-                    } else {
-                        $('#admin-messages').html('<div class="message error">' + response.data + '</div>');
-                    }
+            <div>
+                <h3 style="color: var(--color-text-primary); margin: 0 0 var(--spacing-md) 0;">
+                    ℹ️ System Information
+                </h3>
+                <dl style="display: grid; grid-template-columns: 150px 1fr; gap: var(--spacing-lg); font-size: var(--font-size-sm);">
+                    <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary);">Plugin Version:</dt>
+                    <dd style="margin: 0; color: var(--color-text-secondary);">2.3</dd>
                     
-                    submitBtn.text(originalText).prop('disabled', false);
-                });
-            });
+                    <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary);">WordPress Version:</dt>
+                    <dd style="margin: 0; color: var(--color-text-secondary);"><?php echo esc_html(get_bloginfo('version')); ?></dd>
+                    
+                    <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary);">Site URL:</dt>
+                    <dd style="margin: 0; color: var(--color-text-secondary);"><?php echo esc_url(site_url()); ?></dd>
+                    
+                    <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary);">Database Prefix:</dt>
+                    <dd style="margin: 0; color: var(--color-text-secondary);"><?php global $wpdb; echo esc_html($wpdb->prefix); ?></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
 
-            // Role change functionality
-            $('.role-select').on('change', function() {
-                var userId = $(this).data('user-id');
-                var newRole = $(this).val();
-                var select = $(this);
+<!-- Delete User Modal -->
+<div id="deleteUserModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 style="margin: 0;">Delete User</h2>
+            <button class="modal-close" type="button">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete the user "<strong id="deleteUsername"></strong>"?</p>
+            <div class="alert alert-danger" style="margin-top: var(--spacing-lg);">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-content">
+                    <div class="alert-title">This cannot be undone</div>
+                    <p class="alert-message" style="margin: 0;">This action is permanent. Please proceed with caution.</p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="confirmDelete" class="btn btn-danger">🗑️ Delete User</button>
+            <button id="cancelDelete" class="btn btn-outline">Cancel</button>
+        </div>
+    </div>
+</div>
 
-                // Update visual appearance
-                select.removeClass('role-admin role-editor role-viewer');
-                if (newRole === 'family_admin') select.addClass('role-admin');
-                else if (newRole === 'family_editor') select.addClass('role-editor');
-                else if (newRole === 'family_viewer') select.addClass('role-viewer');
+<!-- Messages -->
+<div id="adminMessages" style="margin-top: var(--spacing-xl);"></div>
 
-                $.post(family_tree.ajax_url, {
-                    action: 'update_user_role',
-                    user_id: userId,
-                    new_role: newRole,
-                    nonce: family_tree.nonce
-                }, function(response) {
-                    if (response.success) {
-                        $('#admin-messages').html('<div class="message success">' + response.data + '</div>');
-                    } else {
-                        $('#admin-messages').html('<div class="message error">' + response.data + '</div>');
-                        // Revert the select on error
-                        location.reload();
-                    }
-                });
-            });
+<script>
+jQuery(document).ready(function($) {
+    // Tab switching
+    $('.tab-button').on('click', function() {
+        const tabId = $(this).data('tab');
+        
+        $('.tab-button').removeClass('active');
+        $(this).addClass('active');
+        
+        $('.tab-content').removeClass('active');
+        $('#' + tabId + '-tab').addClass('active');
+    });
 
-            // Delete user functionality
-            var userToDelete = null;
-
-            $('.delete-user').on('click', function() {
-                userToDelete = $(this).data('user-id');
-                var username = $(this).data('username');
-                $('#delete-username').text(username);
-                $('#delete-user-modal').show();
-            });
-
-            $('.close-modal, #cancel-delete').on('click', function() {
-                $('#delete-user-modal').hide();
-                userToDelete = null;
-            });
-
-            $('#confirm-delete').on('click', function() {
-                if (!userToDelete) return;
-
-                $.post(family_tree.ajax_url, {
-                    action: 'delete_family_user',
-                    user_id: userToDelete,
-                    nonce: family_tree.nonce
-                }, function(response) {
-                    if (response.success) {
-                        $('#admin-messages').html('<div class="message success">' + response.data + '</div>');
-                        $('#delete-user-modal').hide();
-                        setTimeout(function() {
-                            location.reload();
-                        }, 1000);
-                    } else {
-                        $('#admin-messages').html('<div class="message error">' + response.data + '</div>');
-                        $('#delete-user-modal').hide();
-                    }
-                    userToDelete = null;
-                });
-            });
+    // Create user form
+    $('#createUserForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const password = $('#password').val();
+        const confirmPassword = $('#confirm_password').val();
+        
+        if (password !== confirmPassword) {
+            showToast('Passwords do not match', 'error');
+            return;
+        }
+        
+        if (password.length < 6) {
+            showToast('Password must be at least 6 characters', 'error');
+            return;
+        }
+        
+        const btn = $(this).find('button[type="submit"]');
+        const originalText = btn.html();
+        btn.prop('disabled', true).html('<span class="loading-spinner"></span> Creating...');
+        
+        const data = {
+            action: 'create_family_user',
+            nonce: family_tree.nonce,
+            username: $('#username').val(),
+            email: $('#email').val(),
+            first_name: $('#first_name').val(),
+            last_name: $('#last_name').val(),
+            password: password,
+            role: $('#role').val()
+        };
+        
+        $.post(family_tree.ajax_url, data, function(response) {
+            if (response.success) {
+                showToast('User created successfully! 🎉', 'success');
+                $('#createUserForm')[0].reset();
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast('Error: ' + (response.data || 'Failed to create user'), 'error');
+                btn.prop('disabled', false).html(originalText);
+            }
         });
-    </script>
+    });
 
-    <?php wp_footer(); ?>
-</body>
+    // Change user role
+    $('.role-select').on('change', function() {
+        const userId = $(this).data('user-id');
+        const newRole = $(this).val();
+        const select = $(this);
+        
+        $.post(family_tree.ajax_url, {
+            action: 'update_user_role',
+            nonce: family_tree.nonce,
+            user_id: userId,
+            new_role: newRole
+        }, function(response) {
+            if (response.success) {
+                showToast('Role updated successfully', 'success');
+            } else {
+                showToast('Error: ' + (response.data || 'Failed to update'), 'error');
+                location.reload();
+            }
+        });
+    });
 
-</html>
+    // Delete user
+    let userToDelete = null;
+    
+    $('.delete-user').on('click', function() {
+        userToDelete = $(this).data('user-id');
+        const username = $(this).data('username');
+        $('#deleteUsername').text(username);
+        $('#deleteUserModal').addClass('active');
+    });
+
+    $('.modal-close, #cancelDelete').on('click', function() {
+        $('#deleteUserModal').removeClass('active');
+        userToDelete = null;
+    });
+
+    $('#confirmDelete').on('click', function() {
+        if (!userToDelete) return;
+        
+        const btn = $(this);
+        const originalText = btn.html();
+        btn.prop('disabled', true).html('<span class="loading-spinner"></span>');
+        
+        $.post(family_tree.ajax_url, {
+            action: 'delete_family_user',
+            nonce: family_tree.nonce,
+            user_id: userToDelete
+        }, function(response) {
+            if (response.success) {
+                showToast('User deleted successfully', 'success');
+                $('#deleteUserModal').removeClass('active');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('Error: ' + (response.data || 'Failed to delete'), 'error');
+                btn.prop('disabled', false).html(originalText);
+                $('#deleteUserModal').removeClass('active');
+            }
+        });
+    });
+
+    // Close modal on background click
+    $('#deleteUserModal').on('click', function(e) {
+        if (e.target === this) {
+            $(this).removeClass('active');
+        }
+    });
+});
+</script>
+
+<?php
+$page_content = ob_get_clean();
+include FAMILY_TREE_PATH . 'templates/components/page-layout.php';
+?>

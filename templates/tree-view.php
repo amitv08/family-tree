@@ -1,256 +1,413 @@
 <?php
+/**
+ * Family Tree Plugin - Tree View Page
+ * Interactive D3.js visualization with professional design
+ */
+
 if (!is_user_logged_in()) {
     wp_redirect('/family-login');
     exit;
 }
 
-
-// Fetch all member data
+// Fetch all member data for tree
 $members = FamilyTreeDatabase::get_tree_data();
 
-// Build clan list for dropdown
+// Build clan list for filter dropdown
 $clans = [];
 foreach ($members as $m) {
     if (!empty($m->clan_id)) {
         $clans[$m->clan_id] = $m->clan_name ?: 'Unnamed Clan';
     }
 }
+
+$breadcrumbs = [
+    ['label' => 'Dashboard', 'url' => '/family-dashboard'],
+    ['label' => 'Tree View'],
+];
+$page_title = 'Family Tree Visualization';
+$page_actions = '
+    <button id="resetView" class="btn btn-outline btn-sm" title="Reset zoom and pan">
+        🔄 Reset View
+    </button>
+    <a href="/family-dashboard" class="btn btn-outline btn-sm">
+        ← Back
+    </a>
+';
+
+ob_start();
 ?>
 
-<!DOCTYPE html>
-<html <?php language_attributes(); ?>>
-<head>
-    <meta charset="<?php bloginfo('charset'); ?>">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Tree</title>
-
-    <?php wp_head(); ?>
-
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f8f9fa;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-
-        nav.top-menu {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            background: #007cba;
-            color: white;
-            padding: 14px 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 999;
-        }
-
-        nav.top-menu a {
-            color: white;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 15px;
-            transition: color 0.2s ease;
-        }
-
-        nav.top-menu a:hover {
-            color: #dff0ff;
-        }
-
-        .tree-wrapper {
-            width: 100%;
-            height: calc(100vh - 60px);
-            background: #f8f9fa;
-            position: relative;
-            overflow: hidden;
-        }
-
-        svg {
-            width: 100%;
-            height: 100%;
-            cursor: grab;
-        }
-
-        .node circle {
-            stroke-width: 2px;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .node circle:hover {
-            transform: scale(1.15);
-        }
-
-        .node text {
-            font-size: 12px;
-            font-weight: 500;
-            text-anchor: middle;
-            fill: #333;
-            pointer-events: none;
-        }
-
-        .link {
-            fill: none;
-            stroke: #bbb;
-            stroke-width: 1.6px;
-        }
-
-        .tooltip {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.75);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .filter-panel {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: white;
-            border-radius: 6px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-            padding: 10px 15px;
-            font-size: 13px;
-        }
-
-        .filter-panel select {
-            padding: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background: #fff;
-            font-size: 13px;
-        }
-
-        /* Clan color palette */
-        .clan-color-1 circle { stroke: #007cba; fill: #e3f2fd; }
-        .clan-color-2 circle { stroke: #9c27b0; fill: #f3e5f5; }
-        .clan-color-3 circle { stroke: #009688; fill: #e0f2f1; }
-        .clan-color-4 circle { stroke: #f44336; fill: #ffebee; }
-        .clan-color-5 circle { stroke: #ff9800; fill: #fff3e0; }
-
-    </style>
-</head>
-
-<body <?php body_class(); ?>>
-
-    <!-- Global navigation -->
-    <nav class="top-menu">
-        <a href="/family-dashboard">🏠 Dashboard</a>
-        <a href="/browse-members">👨‍👩‍👧 Members</a>
-        <a href="/browse-clans">🏰 Clans</a>
-        <a href="/family-tree" class="active">🌳 Tree View</a>
-    </nav>
-
-    <div class="tree-wrapper">
-        <div class="filter-panel">
-            <label for="clanFilter"><strong>Filter by Clan:</strong></label><br>
-            <select id="clanFilter">
-                <option value="">All Clans</option>
-                <?php foreach ($clans as $id => $name): ?>
-                    <option value="<?php echo esc_attr($id); ?>"><?php echo esc_html($name); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-
-        <div class="tooltip" id="tooltip"></div>
-        <svg id="familyTree"></svg>
+<!-- Filter Panel -->
+<div style="display: flex; gap: var(--spacing-lg); margin-bottom: var(--spacing-xl); flex-wrap: wrap;">
+    <div class="form-group" style="flex: 1; min-width: 250px; margin: 0;">
+        <label class="form-label" for="clanFilter" style="margin-bottom: var(--spacing-sm);">
+            🏰 Filter by Clan
+        </label>
+        <select id="clanFilter" style="width: 100%;">
+            <option value="">All Clans</option>
+            <?php foreach ($clans as $id => $name): ?>
+                <option value="<?php echo esc_attr($id); ?>">
+                    <?php echo esc_html($name); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
     </div>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script>
-        (function() {
-            const fullData = <?php echo wp_json_encode($members); ?> || [];
-            const svg = d3.select("#familyTree");
-            const g = svg.append("g");
-            const tooltip = d3.select("#tooltip");
+    <div style="display: flex; align-items: flex-end; gap: var(--spacing-md);">
+        <button id="toggleInfo" class="btn btn-secondary btn-sm">
+            ℹ️ Info
+        </button>
+    </div>
+</div>
 
-            const width = window.innerWidth;
-            const height = window.innerHeight - 80;
+<!-- Tree Container -->
+<div style="
+    background: var(--color-bg-white);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    height: 600px;
+    position: relative;
+    box-shadow: var(--shadow-base);
+    margin-bottom: var(--spacing-xl);
+">
+    <!-- Empty State -->
+    <?php if (empty($members)): ?>
+        <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+            color: var(--color-text-secondary);
+        ">
+            <div style="font-size: 3rem;">🌳</div>
+            <div style="text-align: center;">
+                <h3 style="color: var(--color-text-primary); margin: 0 0 var(--spacing-sm) 0;">
+                    No Family Tree Data
+                </h3>
+                <p style="margin: 0; font-size: var(--font-size-sm);">
+                    Add family members to see the interactive tree visualization
+                </p>
+                <a href="/add-member" class="btn btn-primary" style="margin-top: var(--spacing-lg);">
+                    ➕ Add First Member
+                </a>
+            </div>
+        </div>
+    <?php else: ?>
+        <!-- SVG Canvas for D3.js -->
+        <svg id="familyTree" style="width: 100%; height: 100%;"></svg>
+    <?php endif; ?>
 
-            const colorScale = d3.scaleOrdinal()
-                .domain([...new Set(fullData.map(d => d.clan_id || 'none'))])
-                .range(['#007cba', '#9c27b0', '#009688', '#f44336', '#ff9800']);
+    <!-- Loading Indicator -->
+    <div id="treeLoading" style="
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        background: rgba(255,255,255,0.95);
+        padding: var(--spacing-2xl);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+    ">
+        <div class="loading-spinner" style="margin: 0 auto var(--spacing-lg) auto;"></div>
+        <p style="margin: 0; color: var(--color-text-secondary);">Loading tree...</p>
+    </div>
 
-            // Zoom & Pan setup
-            const zoom = d3.zoom()
-                .scaleExtent([0.2, 2])
-                .on("zoom", e => g.attr("transform", e.transform));
-            svg.call(zoom);
+    <!-- Legend -->
+    <div style="
+        position: absolute;
+        bottom: var(--spacing-lg);
+        right: var(--spacing-lg);
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-base);
+        padding: var(--spacing-lg);
+        font-size: var(--font-size-sm);
+        max-width: 250px;
+        box-shadow: var(--shadow-md);
+    ">
+        <strong style="display: block; margin-bottom: var(--spacing-md); color: var(--color-text-primary);">
+            Legend
+        </strong>
+        <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+            <div style="
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #4A90E2;
+                border: 2px solid #2C5282;
+            "></div>
+            <span>Living Male</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+            <div style="
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #E53E3E;
+                border: 2px solid #822727;
+            "></div>
+            <span>Living Female</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+            <div style="
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #38A169;
+                border: 2px solid #22543D;
+            "></div>
+            <span>Living Other</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+            <div style="
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: rgba(0,0,0,0.3);
+                border: 2px solid rgba(0,0,0,0.5);
+            "></div>
+            <span>Deceased</span>
+        </div>
+    </div>
+</div>
 
-            function buildTree(data) {
-                g.selectAll("*").remove();
+<!-- Info Panel (Hidden by default) -->
+<div id="infoPanel" style="
+    background: var(--color-info-light);
+    border-left: 4px solid var(--color-info);
+    border-radius: var(--radius-base);
+    padding: var(--spacing-lg);
+    color: var(--color-info);
+    display: none;
+    margin-bottom: var(--spacing-xl);
+">
+    <strong>💡 How to use the tree:</strong>
+    <ul style="margin: var(--spacing-md) 0 0 var(--spacing-lg); padding-left: var(--spacing-lg);">
+        <li>Use <strong>mouse wheel</strong> to zoom in/out</li>
+        <li><strong>Drag</strong> to pan around</li>
+        <li><strong>Click on nodes</strong> to see member details</li>
+        <li>Use the <strong>Filter</strong> dropdown to show specific clans</li>
+        <li>Click <strong>Reset View</strong> to return to default zoom</li>
+    </ul>
+</div>
 
-                const membersMap = {};
-                data.forEach(d => { d.children = []; membersMap[d.id] = d; });
+<!-- Statistics -->
+<?php if (!empty($members)): ?>
+    <div class="grid grid-3" style="margin-bottom: var(--spacing-xl);">
+        <div class="stat-card">
+            <div class="stat-card-icon">👥</div>
+            <div class="stat-card-value"><?php echo count($members); ?></div>
+            <p class="stat-card-label">Total Members</p>
+        </div>
 
-                const roots = [];
-                data.forEach(d => {
-                    if (d.parent1_id && membersMap[d.parent1_id]) membersMap[d.parent1_id].children.push(d);
-                    else if (d.parent2_id && membersMap[d.parent2_id]) membersMap[d.parent2_id].children.push(d);
-                    else roots.push(d);
-                });
+        <div class="stat-card">
+            <div class="stat-card-icon">🏰</div>
+            <div class="stat-card-value"><?php echo count($clans); ?></div>
+            <p class="stat-card-label">Clans</p>
+        </div>
 
-                const root = d3.hierarchy({ children: roots }, d => d.children);
-                const treeLayout = d3.tree().size([width - 200, height - 100]);
-                treeLayout(root);
+        <div class="stat-card">
+            <div class="stat-card-icon">👨‍👩‍👧‍👦</div>
+            <div class="stat-card-value">
+                <?php
+                $generations = 1;
+                $maxDepth = 0;
+                function getMaxDepth($memberId, $members, $depth = 0) {
+                    $max = $depth;
+                    foreach ($members as $m) {
+                        if ($m->parent1_id == $memberId || $m->parent2_id == $memberId) {
+                            $childMax = getMaxDepth($m->id, $members, $depth + 1);
+                            $max = max($max, $childMax);
+                        }
+                    }
+                    return $max;
+                }
+                
+                $membersArray = $members;
+                foreach ($membersArray as $m) {
+                    if (!$m->parent1_id && !$m->parent2_id) {
+                        $depth = getMaxDepth($m->id, $membersArray);
+                        $maxDepth = max($maxDepth, $depth);
+                    }
+                }
+                echo $maxDepth + 1;
+                ?>
+            </div>
+            <p class="stat-card-label">Generations</p>
+        </div>
+    </div>
+<?php endif; ?>
 
-                // Links
-                g.selectAll(".link")
-                    .data(root.links())
-                    .join("path")
-                    .attr("class", "link")
-                    .attr("d", d3.linkVertical().x(d => d.x).y(d => d.y));
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+    (function() {
+        const fullData = <?php echo wp_json_encode($members); ?> || [];
+        const svg = d3.select("#familyTree");
+        const g = svg.append("g");
 
-                // Nodes
-                const node = g.selectAll(".node")
-                    .data(root.descendants().slice(1))
-                    .join("g")
-                    .attr("class", "node")
-                    .attr("transform", d => `translate(${d.x},${d.y})`);
+        const width = document.getElementById('familyTree')?.parentElement?.offsetWidth || 1200;
+        const height = 600;
 
-                node.append("circle")
-                    .attr("r", 18)
-                    .style("stroke", d => colorScale(d.data.clan_id))
-                    .style("fill", d => d3.color(colorScale(d.data.clan_id)).brighter(1.5))
-                    .on("mouseover", function(e, d) {
-                        tooltip.style("opacity", 1)
-                            .html(`<strong>${d.data.first_name || ''} ${d.data.last_name || ''}</strong><br>
-                                   Gender: ${d.data.gender || '-'}<br>
-                                   Clan: ${d.data.clan_name || 'None'}`)
-                            .style("left", (e.pageX + 12) + "px")
-                            .style("top", (e.pageY - 28) + "px");
-                    })
-                    .on("mouseout", () => tooltip.style("opacity", 0));
+        const colorScale = d3.scaleOrdinal()
+            .domain([...new Set(fullData.map(d => d.clan_id || 'none'))])
+            .range(['#007cba', '#9c27b0', '#009688', '#f44336', '#ff9800']);
 
-                node.append("text")
-                    .attr("dy", 4)
-                    .text(d => `${d.data.first_name || ''} ${d.data.last_name || ''}`);
-            }
+        // Zoom & Pan setup
+        const zoom = d3.zoom()
+            .scaleExtent([0.5, 3])
+            .on("zoom", e => g.attr("transform", e.transform));
+        
+        svg.call(zoom);
 
-            // Initial render
-            buildTree(fullData);
+        // Reset view button
+        document.getElementById('resetView')?.addEventListener('click', () => {
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity.translate(50, 0));
+        });
 
-            // Clan filter logic
-            d3.select("#clanFilter").on("change", function() {
-                const val = this.value;
-                if (!val) {
-                    buildTree(fullData);
+        // Toggle info panel
+        document.getElementById('toggleInfo')?.addEventListener('click', function() {
+            const panel = document.getElementById('infoPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            this.classList.toggle('btn-primary');
+            this.classList.toggle('btn-secondary');
+        });
+
+        function buildTree(data) {
+            if (data.length === 0) return;
+
+            g.selectAll("*").remove();
+
+            const membersMap = {};
+            data.forEach(d => { 
+                d.children = []; 
+                membersMap[d.id] = d; 
+            });
+
+            const roots = [];
+            data.forEach(d => {
+                if (d.parent1_id && membersMap[d.parent1_id]) {
+                    membersMap[d.parent1_id].children.push(d);
+                } else if (d.parent2_id && membersMap[d.parent2_id]) {
+                    membersMap[d.parent2_id].children.push(d);
                 } else {
-                    const filtered = fullData.filter(d => String(d.clan_id) === val);
-                    buildTree(filtered);
+                    roots.push(d);
                 }
             });
-        })();
-    </script>
 
-    <?php wp_footer(); ?>
-</body>
-</html>
+            if (roots.length === 0 && data.length > 0) {
+                roots.push(data[0]);
+            }
+
+            const root = d3.hierarchy({ children: roots }, d => d.children);
+            const treeLayout = d3.tree().size([height - 100, width - 200]);
+            treeLayout(root);
+
+            // Links
+            g.selectAll(".link")
+                .data(root.links())
+                .join("path")
+                .attr("class", "link")
+                .attr("d", d3.linkVertical().x(d => d.x).y(d => d.y))
+                .style("fill", "none")
+                .style("stroke", "#bbb")
+                .style("stroke-width", 1.5);
+
+            // Nodes
+            const node = g.selectAll(".node")
+                .data(root.descendants().slice(1))
+                .join("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.x},${d.y})`);
+
+            node.append("circle")
+                .attr("r", 18)
+                .style("stroke-width", 2)
+                .style("cursor", "pointer")
+                .style("stroke", d => colorScale(d.data.clan_id))
+                .style("fill", d => {
+                    if (d.data.death_date) return "rgba(0,0,0,0.3)";
+                    if (d.data.gender === "Male") return "#4A90E2";
+                    if (d.data.gender === "Female") return "#E53E3E";
+                    return "#38A169";
+                })
+                .on("mouseover", function(e, d) {
+                    // Show tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.id = 'treeTooltip';
+                    tooltip.style.cssText = `
+                        position: fixed;
+                        top: ${e.clientY + 10}px;
+                        left: ${e.clientX + 10}px;
+                        background: rgba(0,0,0,0.85);
+                        color: white;
+                        padding: var(--spacing-md) var(--spacing-lg);
+                        border-radius: var(--radius-sm);
+                        font-size: var(--font-size-sm);
+                        z-index: 1000;
+                        pointer-events: none;
+                    `;
+                    tooltip.innerHTML = `
+                        <strong>${d.data.first_name || ''} ${d.data.last_name || ''}</strong><br>
+                        Gender: ${d.data.gender || '-'}<br>
+                        Born: ${d.data.birth_date || '-'}<br>
+                        ${d.data.death_date ? ('Died: ' + d.data.death_date + '<br>') : ''}
+                        Clan: ${d.data.clan_name || 'None'}
+                    `;
+                    document.body.appendChild(tooltip);
+                    
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr("r", 24);
+                })
+                .on("mouseout", function(e, d) {
+                    document.getElementById('treeTooltip')?.remove();
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr("r", 18);
+                });
+
+            node.append("text")
+                .attr("dy", 4)
+                .style("font-size", "11px")
+                .style("font-weight", "500")
+                .style("text-anchor", "middle")
+                .style("fill", "#333")
+                .style("pointer-events", "none")
+                .text(d => `${d.data.first_name || ''} ${d.data.last_name || ''}`);
+        }
+
+        // Initial render
+        buildTree(fullData);
+
+        // Clan filter logic
+        d3.select("#clanFilter").on("change", function() {
+            const val = this.value;
+            if (!val) {
+                buildTree(fullData);
+            } else {
+                const filtered = fullData.filter(d => String(d.clan_id) === val);
+                buildTree(filtered);
+            }
+        });
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            const newWidth = document.getElementById('familyTree')?.parentElement?.offsetWidth || 1200;
+            svg.attr("width", newWidth);
+        });
+    })();
+</script>
+
+<?php
+$page_content = ob_get_clean();
+include FAMILY_TREE_PATH . 'templates/components/page-layout.php';
+?>

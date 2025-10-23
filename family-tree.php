@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Family Tree
  * Description: Complete family tree management system with clans and members.
- * Version: 2.3.1
+ * Version: 2.3.2
  * Author: Amit Vengsarkar
  */
 
@@ -59,6 +59,11 @@ class FamilyTreePlugin
         add_action('wp_ajax_soft_delete_member', [$this, 'ajax_soft_delete_member']);
         add_action('wp_ajax_restore_member', [$this, 'ajax_restore_member']);
         add_action('wp_ajax_search_members_select2', [$this, 'ajax_search_members_select2']);
+
+        // Admin panel user management
+        add_action('wp_ajax_create_family_user', [$this, 'ajax_create_family_user']);
+        add_action('wp_ajax_update_user_role', [$this, 'ajax_update_user_role']);
+        add_action('wp_ajax_delete_family_user', [$this, 'ajax_delete_family_user']);
 
     }
 
@@ -134,6 +139,8 @@ class FamilyTreePlugin
             $this->load_template('dashboard.php');
         elseif (strpos($uri, '/family-login') !== false)
             $this->load_template('login.php');
+        elseif (strpos($uri, '/family-admin') !== false)
+            $this->load_template('admin-panel.php');
 
         // Members
         elseif (strpos($uri, '/add-member') !== false)
@@ -313,6 +320,140 @@ public function ajax_update_family_member() {
             wp_send_json_error('Invalid member id');
         $ok = FamilyTreeDatabase::restore_member($id);
         $ok ? wp_send_json_success('Member restored') : wp_send_json_error('Failed to restore member');
+    }
+
+    // -------------------------------------------------------------
+    // AJAX: User Management (Admin Panel)
+    // -------------------------------------------------------------
+    public function ajax_create_family_user()
+    {
+        check_ajax_referer('family_tree_nonce', 'nonce');
+
+        if (!current_user_can('manage_family_users')) {
+            wp_send_json_error('You do not have permission to create users');
+        }
+
+        $username = sanitize_text_field($_POST['username']);
+        $email = sanitize_email($_POST['email']);
+        $password = $_POST['password'];
+        $first_name = sanitize_text_field($_POST['first_name']);
+        $last_name = sanitize_text_field($_POST['last_name']);
+        $role = sanitize_text_field($_POST['role']);
+
+        // Validation
+        if (empty($username) || empty($email) || empty($password)) {
+            wp_send_json_error('Username, email, and password are required');
+        }
+
+        if (!is_email($email)) {
+            wp_send_json_error('Invalid email address');
+        }
+
+        if (strlen($password) < 6) {
+            wp_send_json_error('Password must be at least 6 characters');
+        }
+
+        if (!in_array($role, ['family_admin', 'family_editor', 'family_viewer'])) {
+            wp_send_json_error('Invalid role selected');
+        }
+
+        // Check if username exists
+        if (username_exists($username)) {
+            wp_send_json_error('Username already exists');
+        }
+
+        // Check if email exists
+        if (email_exists($email)) {
+            wp_send_json_error('Email already exists');
+        }
+
+        // Create user
+        $user_id = wp_create_user($username, $password, $email);
+
+        if (is_wp_error($user_id)) {
+            wp_send_json_error($user_id->get_error_message());
+        }
+
+        // Update user meta
+        wp_update_user([
+            'ID' => $user_id,
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'display_name' => trim($first_name . ' ' . $last_name) ?: $username,
+            'role' => $role
+        ]);
+
+        wp_send_json_success('User created successfully');
+    }
+
+    public function ajax_update_user_role()
+    {
+        check_ajax_referer('family_tree_nonce', 'nonce');
+
+        if (!current_user_can('manage_family_users')) {
+            wp_send_json_error('You do not have permission to update user roles');
+        }
+
+        $user_id = intval($_POST['user_id']);
+        $new_role = sanitize_text_field($_POST['new_role']);
+
+        if (!$user_id) {
+            wp_send_json_error('Invalid user ID');
+        }
+
+        if (!in_array($new_role, ['family_admin', 'family_editor', 'family_viewer'])) {
+            wp_send_json_error('Invalid role');
+        }
+
+        $user = get_user_by('ID', $user_id);
+        if (!$user) {
+            wp_send_json_error('User not found');
+        }
+
+        // Remove old family roles
+        $user->remove_role('family_admin');
+        $user->remove_role('family_editor');
+        $user->remove_role('family_viewer');
+
+        // Add new role
+        $user->add_role($new_role);
+
+        wp_send_json_success('Role updated successfully');
+    }
+
+    public function ajax_delete_family_user()
+    {
+        check_ajax_referer('family_tree_nonce', 'nonce');
+
+        if (!current_user_can('manage_family_users')) {
+            wp_send_json_error('You do not have permission to delete users');
+        }
+
+        $user_id = intval($_POST['user_id']);
+
+        if (!$user_id) {
+            wp_send_json_error('Invalid user ID');
+        }
+
+        // Prevent deleting yourself
+        if ($user_id == get_current_user_id()) {
+            wp_send_json_error('You cannot delete your own account');
+        }
+
+        $user = get_user_by('ID', $user_id);
+        if (!$user) {
+            wp_send_json_error('User not found');
+        }
+
+        // Delete user
+        require_once(ABSPATH . 'wp-admin/includes/user.php');
+        $result = wp_delete_user($user_id);
+
+        if (!$result) {
+            wp_send_json_error('Failed to delete user');
+        }
+
+        wp_send_json_success('User deleted successfully');
     }
 }
 

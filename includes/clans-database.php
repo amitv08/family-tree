@@ -124,8 +124,30 @@ class FamilyTreeClanDatabase {
 
     public static function get_all_clans() {
         global $wpdb;
-        $table = $wpdb->prefix . 'family_clans';
-        return $wpdb->get_results("SELECT * FROM $table ORDER BY clan_name ASC");
+        $clans_table = $wpdb->prefix . 'family_clans';
+        $locations_table = $wpdb->prefix . 'clan_locations';
+        $surnames_table = $wpdb->prefix . 'clan_surnames';
+
+        $clans = $wpdb->get_results("SELECT * FROM $clans_table ORDER BY clan_name ASC");
+
+        // Attach locations and surnames to each clan
+        foreach ($clans as $clan) {
+            // Get locations as simple array of strings
+            $locations = $wpdb->get_col($wpdb->prepare(
+                "SELECT location_name FROM $locations_table WHERE clan_id = %d",
+                $clan->id
+            ));
+            $clan->locations = $locations;
+
+            // Get surnames as simple array of strings
+            $surnames = $wpdb->get_col($wpdb->prepare(
+                "SELECT last_name FROM $surnames_table WHERE clan_id = %d",
+                $clan->id
+            ));
+            $clan->surnames = $surnames;
+        }
+
+        return $clans;
     }
 
     public static function get_clan($id) {
