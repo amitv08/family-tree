@@ -56,7 +56,9 @@ ob_start();
                 <?php
                 $total_locations = 0;
                 foreach ($clans as $c) {
-                    $total_locations += count($c->locations ?: []);
+                    if (isset($c->locations) && is_array($c->locations)) {
+                        $total_locations += count($c->locations);
+                    }
                 }
                 echo $total_locations;
                 ?>
@@ -70,7 +72,9 @@ ob_start();
                 <?php
                 $total_surnames = 0;
                 foreach ($clans as $c) {
-                    $total_surnames += count($c->surnames ?: []);
+                    if (isset($c->surnames) && is_array($c->surnames)) {
+                        $total_surnames += count($c->surnames);
+                    }
                 }
                 echo $total_surnames;
                 ?>
@@ -88,48 +92,60 @@ ob_start();
                         <h3 style="margin: 0; color: var(--color-primary);">
                             🏰 <?php echo esc_html($clan->clan_name); ?>
                         </h3>
-                        <?php if ($clan->origin_year): ?>
+                        <?php if (!empty($clan->origin_year)): ?>
                             <small style="color: var(--color-text-light);">
-                                Founded: <?php echo esc_html($clan->origin_year); ?>
+                                Founded: <?php echo esc_html((string)$clan->origin_year); ?>
                             </small>
                         <?php endif; ?>
                     </div>
                 </div>
 
                 <div class="card-body">
-                    <?php if ($clan->description): ?>
+                    <?php if (!empty($clan->description)): ?>
                         <p style="color: var(--color-text-secondary); margin-bottom: var(--spacing-lg);">
                             <?php echo esc_html(wp_trim_words($clan->description, 30)); ?>
                         </p>
                     <?php endif; ?>
 
                     <!-- Locations -->
-                    <?php if (!empty($clan->locations)): ?>
+                    <?php if (isset($clan->locations) && is_array($clan->locations) && !empty($clan->locations)): ?>
                         <div style="margin-bottom: var(--spacing-lg);">
                             <strong style="display: block; margin-bottom: var(--spacing-sm); color: var(--color-text-primary); font-size: var(--font-size-sm);">
                                 📍 Locations:
                             </strong>
                             <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
                                 <?php foreach ($clan->locations as $location): ?>
-                                    <span class="badge badge-primary">
-                                        <?php echo esc_html($location); ?>
-                                    </span>
+                                    <?php if (is_string($location) || is_numeric($location)): ?>
+                                        <span class="badge badge-primary">
+                                            <?php echo esc_html((string)$location); ?>
+                                        </span>
+                                    <?php elseif (is_object($location) && isset($location->location_name)): ?>
+                                        <span class="badge badge-primary">
+                                            <?php echo esc_html($location->location_name); ?>
+                                        </span>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
                             </div>
                         </div>
                     <?php endif; ?>
 
                     <!-- Surnames -->
-                    <?php if (!empty($clan->surnames)): ?>
+                    <?php if (isset($clan->surnames) && is_array($clan->surnames) && !empty($clan->surnames)): ?>
                         <div style="margin-bottom: var(--spacing-lg);">
                             <strong style="display: block; margin-bottom: var(--spacing-sm); color: var(--color-text-primary); font-size: var(--font-size-sm);">
                                 🔤 Surnames:
                             </strong>
                             <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
                                 <?php foreach ($clan->surnames as $surname): ?>
-                                    <span class="badge badge-secondary">
-                                        <?php echo esc_html($surname); ?>
-                                    </span>
+                                    <?php if (is_string($surname) || is_numeric($surname)): ?>
+                                        <span class="badge badge-secondary">
+                                            <?php echo esc_html((string)$surname); ?>
+                                        </span>
+                                    <?php elseif (is_object($surname) && isset($surname->last_name)): ?>
+                                        <span class="badge badge-secondary">
+                                            <?php echo esc_html($surname->last_name); ?>
+                                        </span>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
                             </div>
                         </div>

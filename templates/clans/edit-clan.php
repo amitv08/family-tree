@@ -156,8 +156,33 @@ jQuery(function($) {
     console.log("Edit Clan form initialized");
 
     // Tag management
-    let locations = <?php echo json_encode($clan->locations ?: []); ?>;
-    let surnames = <?php echo json_encode($clan->surnames ?: []); ?>;
+    // Extract just the names from the objects returned by get_clan()
+    let locations = <?php
+        $location_names = [];
+        if (isset($clan->locations) && is_array($clan->locations)) {
+            foreach ($clan->locations as $loc) {
+                if (is_object($loc) && isset($loc->location_name)) {
+                    $location_names[] = $loc->location_name;
+                } elseif (is_string($loc)) {
+                    $location_names[] = $loc;
+                }
+            }
+        }
+        echo json_encode($location_names);
+    ?>;
+    let surnames = <?php
+        $surname_names = [];
+        if (isset($clan->surnames) && is_array($clan->surnames)) {
+            foreach ($clan->surnames as $sn) {
+                if (is_object($sn) && isset($sn->last_name)) {
+                    $surname_names[] = $sn->last_name;
+                } elseif (is_string($sn)) {
+                    $surname_names[] = $sn;
+                }
+            }
+        }
+        echo json_encode($surname_names);
+    ?>;
 
     // Render tags
     function renderTags(arr, containerId) {

@@ -60,6 +60,7 @@ class FamilyTreeClanDatabase {
         $locations_table = $wpdb->prefix . 'clan_locations';
         $surnames_table = $wpdb->prefix . 'clan_surnames';
 
+        // Validation: Required fields
         if (empty($data['clan_name'])) {
             return new WP_Error('missing_name', 'Clan name is required');
         }
@@ -68,6 +69,17 @@ class FamilyTreeClanDatabase {
         }
         if (empty($data['surnames']) || !is_array($data['surnames']) || count($data['surnames']) === 0) {
             return new WP_Error('missing_surnames', 'At least one surname is required');
+        }
+
+        // Validation: Field length limits (matching database schema)
+        if (strlen($data['clan_name']) > 150) {
+            return new WP_Error('name_too_long', 'Clan name is too long (maximum 150 characters)');
+        }
+        if (isset($data['description']) && strlen($data['description']) > 5000) {
+            return new WP_Error('description_too_long', 'Description is too long (maximum 5,000 characters)');
+        }
+        if (isset($data['origin_year']) && ($data['origin_year'] < 1000 || $data['origin_year'] > date('Y'))) {
+            return new WP_Error('invalid_year', 'Origin year must be between 1000 and current year');
         }
 
         $now = current_time('mysql');
@@ -95,6 +107,11 @@ class FamilyTreeClanDatabase {
 
         // Insert locations
         foreach ($data['locations'] as $loc) {
+            // Validate that each location is a string
+            if (!is_string($loc) && !is_numeric($loc)) {
+                error_log('Invalid location data type in add_clan: ' . gettype($loc));
+                continue;
+            }
             $loc_name = sanitize_text_field($loc);
             if ($loc_name === '') continue;
             $wpdb->insert($locations_table, array(
@@ -108,6 +125,11 @@ class FamilyTreeClanDatabase {
 
         // Insert surnames
         foreach ($data['surnames'] as $sn) {
+            // Validate that each surname is a string
+            if (!is_string($sn) && !is_numeric($sn)) {
+                error_log('Invalid surname data type in add_clan: ' . gettype($sn));
+                continue;
+            }
             $sn_name = sanitize_text_field($sn);
             if ($sn_name === '') continue;
             $wpdb->insert($surnames_table, array(
@@ -130,21 +152,26 @@ class FamilyTreeClanDatabase {
 
         $clans = $wpdb->get_results("SELECT * FROM $clans_table ORDER BY clan_name ASC");
 
+        // Return empty array if no clans
+        if (!$clans) {
+            return [];
+        }
+
         // Attach locations and surnames to each clan
         foreach ($clans as $clan) {
-            // Get locations as simple array of strings
+            // Get locations as simple array of strings (ensure always array, never false/null)
             $locations = $wpdb->get_col($wpdb->prepare(
                 "SELECT location_name FROM $locations_table WHERE clan_id = %d",
                 $clan->id
             ));
-            $clan->locations = $locations;
+            $clan->locations = is_array($locations) ? $locations : [];
 
-            // Get surnames as simple array of strings
+            // Get surnames as simple array of strings (ensure always array, never false/null)
             $surnames = $wpdb->get_col($wpdb->prepare(
                 "SELECT last_name FROM $surnames_table WHERE clan_id = %d",
                 $clan->id
             ));
-            $clan->surnames = $surnames;
+            $clan->surnames = is_array($surnames) ? $surnames : [];
         }
 
         return $clans;
@@ -159,8 +186,13 @@ class FamilyTreeClanDatabase {
         $clan = $wpdb->get_row($wpdb->prepare("SELECT * FROM $clans WHERE id = %d", $id));
         if (!$clan) return null;
 
-        $clan->locations = $wpdb->get_results($wpdb->prepare("SELECT id, location_name FROM $locations WHERE clan_id = %d", $id), OBJECT);
-        $clan->surnames  = $wpdb->get_results($wpdb->prepare("SELECT id, last_name FROM $surnames WHERE clan_id = %d", $id), OBJECT);
+        // Get locations (ensure always array, never false/null)
+        $clan_locations = $wpdb->get_results($wpdb->prepare("SELECT id, location_name FROM $locations WHERE clan_id = %d", $id), OBJECT);
+        $clan->locations = is_array($clan_locations) ? $clan_locations : [];
+
+        // Get surnames (ensure always array, never false/null)
+        $clan_surnames = $wpdb->get_results($wpdb->prepare("SELECT id, last_name FROM $surnames WHERE clan_id = %d", $id), OBJECT);
+        $clan->surnames = is_array($clan_surnames) ? $clan_surnames : [];
 
         return $clan;
     }
@@ -173,6 +205,7 @@ class FamilyTreeClanDatabase {
 
         $now = current_time('mysql');
 
+        // Update clan basic info
         $wpdb->update($clans, array(
             'clan_name'   => sanitize_text_field($data['clan_name']),
             'description' => isset($data['description']) ? sanitize_textarea_field($data['description']) : '',
@@ -181,37 +214,86 @@ class FamilyTreeClanDatabase {
             'updated_at'  => $now
         ), array('id' => $id), array('%s','%s','%d','%d','%s'), array('%d'));
 
-        // Replace related data: delete old and insert new
-        $wpdb->delete($locations, array('clan_id' => $id));
-        $wpdb->delete($surnames, array('clan_id' => $id));
+        // Smart update for locations (preserves member references)
+        self::smart_update_related_data(
+            $id,
+            $locations,
+            'location_name',
+            isset($data['locations']) && is_array($data['locations']) ? $data['locations'] : [],
+            $now
+        );
 
-        if (!empty($data['locations']) && is_array($data['locations'])) {
-            foreach ($data['locations'] as $loc) {
-                $loc_name = sanitize_text_field($loc);
-                if ($loc_name === '') continue;
-                $wpdb->insert($locations, array(
-                    'clan_id' => $id,
-                    'location_name' => $loc_name,
-                    'created_by' => get_current_user_id(),
-                    'created_at' => $now
-                ), array('%d','%s','%d','%s'));
-            }
-        }
-
-        if (!empty($data['surnames']) && is_array($data['surnames'])) {
-            foreach ($data['surnames'] as $sn) {
-                $sn_name = sanitize_text_field($sn);
-                if ($sn_name === '') continue;
-                $wpdb->insert($surnames, array(
-                    'clan_id' => $id,
-                    'last_name' => $sn_name,
-                    'created_by' => get_current_user_id(),
-                    'created_at' => $now
-                ), array('%d','%s','%d','%s'));
-            }
-        }
+        // Smart update for surnames (preserves member references)
+        self::smart_update_related_data(
+            $id,
+            $surnames,
+            'last_name',
+            isset($data['surnames']) && is_array($data['surnames']) ? $data['surnames'] : [],
+            $now
+        );
 
         return true;
+    }
+
+    /**
+     * Smart update for related data (locations/surnames)
+     * Preserves existing records and their IDs to maintain member references
+     *
+     * @param int $clan_id Clan ID
+     * @param string $table Table name (with prefix)
+     * @param string $name_field Field name (location_name or last_name)
+     * @param array $new_values New values from form
+     * @param string $now Current timestamp
+     */
+    private static function smart_update_related_data($clan_id, $table, $name_field, $new_values, $now) {
+        global $wpdb;
+
+        // Sanitize new values
+        $new_values = array_filter(array_map(function($val) {
+            if (!is_string($val) && !is_numeric($val)) {
+                error_log('Invalid data type in smart_update_related_data: ' . gettype($val));
+                return null;
+            }
+            $sanitized = sanitize_text_field($val);
+            return $sanitized !== '' ? $sanitized : null;
+        }, $new_values));
+
+        // Get existing records
+        $existing = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, {$name_field} FROM {$table} WHERE clan_id = %d",
+            $clan_id
+        ), OBJECT);
+
+        $existing_values = [];
+        $existing_ids = [];
+        foreach ($existing as $record) {
+            $existing_values[] = $record->{$name_field};
+            $existing_ids[$record->{$name_field}] = $record->id;
+        }
+
+        // Determine what to add, keep, and remove
+        $to_add = array_diff($new_values, $existing_values);      // New items to insert
+        $to_keep = array_intersect($new_values, $existing_values); // Existing items to keep
+        $to_remove = array_diff($existing_values, $new_values);   // Old items to delete
+
+        // Delete removed items
+        foreach ($to_remove as $value) {
+            if (isset($existing_ids[$value])) {
+                $wpdb->delete($table, array('id' => $existing_ids[$value]));
+            }
+        }
+
+        // Add new items
+        foreach ($to_add as $value) {
+            $wpdb->insert($table, array(
+                'clan_id' => $clan_id,
+                $name_field => $value,
+                'created_by' => get_current_user_id(),
+                'created_at' => $now
+            ), array('%d', '%s', '%d', '%s'));
+        }
+
+        // Items in $to_keep remain unchanged (preserving their IDs and member references)
     }
 
     public static function delete_clan($id) {

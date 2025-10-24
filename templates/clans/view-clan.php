@@ -43,9 +43,9 @@ ob_start();
                 <h2 style="color: white; margin: 0 0 var(--spacing-md) 0; font-size: var(--font-size-2xl);">
                     🏰 <?php echo esc_html($clan->clan_name); ?>
                 </h2>
-                <?php if ($clan->origin_year): ?>
+                <?php if (!empty($clan->origin_year)): ?>
                     <p style="margin: 0; opacity: 0.9;">
-                        <strong>Founded:</strong> <?php echo esc_html($clan->origin_year); ?>
+                        <strong>Founded:</strong> <?php echo esc_html((string)$clan->origin_year); ?>
                     </p>
                 <?php endif; ?>
             </div>
@@ -61,7 +61,7 @@ ob_start();
     <!-- Left Column -->
     <div>
         <!-- Description Section -->
-        <?php if ($clan->description): ?>
+        <?php if (!empty($clan->description)): ?>
             <div class="card" style="margin-bottom: var(--spacing-xl);">
                 <div class="card-header">
                     <h3 style="margin: 0;">📖 About This Clan</h3>
@@ -75,7 +75,7 @@ ob_start();
         <?php endif; ?>
 
         <!-- Locations Section -->
-        <?php if (!empty($clan->locations)): ?>
+        <?php if (isset($clan->locations) && is_array($clan->locations) && !empty($clan->locations)): ?>
             <div class="card" style="margin-bottom: var(--spacing-xl);">
                 <div class="card-header">
                     <h3 style="margin: 0;">📍 Primary Locations</h3>
@@ -83,18 +83,26 @@ ob_start();
                 <div class="card-body">
                     <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-md);">
                         <?php foreach ($clan->locations as $location): ?>
-                            <div style="
-                                flex: 1;
-                                min-width: 150px;
-                                padding: var(--spacing-lg);
-                                background: var(--color-bg-light);
-                                border-radius: var(--radius-base);
-                                border-left: 4px solid var(--color-primary);
-                            ">
-                                <strong style="display: block; color: var(--color-text-primary); margin-bottom: var(--spacing-xs);">
-                                    📍 <?php echo esc_html($location); ?>
-                                </strong>
-                            </div>
+                            <?php
+                            // Handle both object (from get_clan) and string (from get_all_clans)
+                            $location_name = is_object($location) && isset($location->location_name)
+                                ? $location->location_name
+                                : (is_string($location) ? $location : '');
+                            ?>
+                            <?php if (!empty($location_name)): ?>
+                                <div style="
+                                    flex: 1;
+                                    min-width: 150px;
+                                    padding: var(--spacing-lg);
+                                    background: var(--color-bg-light);
+                                    border-radius: var(--radius-base);
+                                    border-left: 4px solid var(--color-primary);
+                                ">
+                                    <strong style="display: block; color: var(--color-text-primary); margin-bottom: var(--spacing-xs);">
+                                        📍 <?php echo esc_html($location_name); ?>
+                                    </strong>
+                                </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -102,7 +110,7 @@ ob_start();
         <?php endif; ?>
 
         <!-- Surnames Section -->
-        <?php if (!empty($clan->surnames)): ?>
+        <?php if (isset($clan->surnames) && is_array($clan->surnames) && !empty($clan->surnames)): ?>
             <div class="card">
                 <div class="card-header">
                     <h3 style="margin: 0;">🔤 Family Surnames</h3>
@@ -110,9 +118,17 @@ ob_start();
                 <div class="card-body">
                     <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-md);">
                         <?php foreach ($clan->surnames as $surname): ?>
-                            <span class="badge badge-primary" style="padding: var(--spacing-md) var(--spacing-lg); font-size: var(--font-size-sm);">
-                                <?php echo esc_html($surname); ?>
-                            </span>
+                            <?php
+                            // Handle both object (from get_clan) and string (from get_all_clans)
+                            $surname_name = is_object($surname) && isset($surname->last_name)
+                                ? $surname->last_name
+                                : (is_string($surname) ? $surname : '');
+                            ?>
+                            <?php if (!empty($surname_name)): ?>
+                                <span class="badge badge-primary" style="padding: var(--spacing-md) var(--spacing-lg); font-size: var(--font-size-sm);">
+                                    <?php echo esc_html($surname_name); ?>
+                                </span>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -137,12 +153,12 @@ ob_start();
                 ));
                 
                 $living_members = $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM $table WHERE clan_id = %d AND is_deleted = 0 AND (death_date IS NULL OR death_date = '')",
+                    "SELECT COUNT(*) FROM $table WHERE clan_id = %d AND is_deleted = 0 AND death_date IS NULL",
                     $clan->id
                 ));
                 
                 $deceased_members = $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM $table WHERE clan_id = %d AND is_deleted = 0 AND death_date IS NOT NULL AND death_date != ''",
+                    "SELECT COUNT(*) FROM $table WHERE clan_id = %d AND is_deleted = 0 AND death_date IS NOT NULL",
                     $clan->id
                 ));
                 
@@ -213,14 +229,14 @@ ob_start();
                         Total Locations:
                     </dt>
                     <dd style="margin: 0 0 var(--spacing-lg) 0; color: var(--color-text-secondary);">
-                        <?php echo count($clan->locations ?: []); ?>
+                        <?php echo isset($clan->locations) && is_array($clan->locations) ? count($clan->locations) : 0; ?>
                     </dd>
 
                     <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">
                         Total Surnames:
                     </dt>
                     <dd style="margin: 0 0 var(--spacing-lg) 0; color: var(--color-text-secondary);">
-                        <?php echo count($clan->surnames ?: []); ?>
+                        <?php echo isset($clan->surnames) && is_array($clan->surnames) ? count($clan->surnames) : 0; ?>
                     </dd>
 
                     <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">
@@ -289,10 +305,10 @@ ob_start();
                                 ?>
                             </td>
                             <td>
-                                <?php echo esc_html($member->birth_date ?: '-'); ?>
+                                <?php echo !empty($member->birth_date) ? esc_html($member->birth_date) : '-'; ?>
                             </td>
                             <td>
-                                <?php if ($member->death_date): ?>
+                                <?php if (!empty($member->death_date)): ?>
                                     <span class="badge badge-danger">⚫ Deceased</span>
                                 <?php else: ?>
                                     <span class="badge badge-success">🟢 Living</span>

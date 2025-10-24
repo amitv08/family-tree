@@ -163,11 +163,17 @@ ob_start();
                         Mother:
                     </dt>
                     <dd style="margin: 0; color: var(--color-text-secondary);">
-                        <?php if ($member->parent2_id): ?>
+                        <?php if (!empty($member->parent2_name)): ?>
+                            <?php echo esc_html($member->parent2_name); ?>
+                        <?php elseif ($member->parent2_id): ?>
                             <?php $p2 = FamilyTreeDatabase::get_member($member->parent2_id); ?>
-                            <a href="/view-member?id=<?php echo intval($p2->id); ?>" style="color: var(--color-primary); text-decoration: underline;">
-                                <?php echo esc_html($p2->first_name . ' ' . $p2->last_name); ?>
-                            </a>
+                            <?php if ($p2): ?>
+                                <a href="/view-member?id=<?php echo intval($p2->id); ?>" style="color: var(--color-primary); text-decoration: underline;">
+                                    <?php echo esc_html($p2->first_name . ' ' . $p2->last_name); ?>
+                                </a>
+                            <?php else: ?>
+                                <em style="color: var(--color-text-light);">Not recorded</em>
+                            <?php endif; ?>
                         <?php else: ?>
                             <em style="color: var(--color-text-light);">Not recorded</em>
                         <?php endif; ?>
@@ -177,7 +183,7 @@ ob_start();
         </div>
 
         <!-- Biography -->
-        <?php if ($member->biography): ?>
+        <?php if (!empty($member->biography)): ?>
             <div class="card">
                 <div class="card-header">
                     <h3 style="margin: 0;">📖 Biography</h3>

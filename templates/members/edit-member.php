@@ -111,27 +111,33 @@ ob_start();
                 </div>
             </div>
 
-            <div class="form-row form-row-2">
-                <div class="form-group">
-                    <label class="form-label" for="gender">Gender</label>
-                    <select id="gender" name="gender">
-                        <option value="">-- Select --</option>
-                        <option value="Male" <?php echo ($member->gender == 'Male') ? 'selected' : ''; ?>>♂️ Male</option>
-                        <option value="Female" <?php echo ($member->gender == 'Female') ? 'selected' : ''; ?>>♀️ Female</option>
-                        <option value="Other" <?php echo ($member->gender == 'Other') ? 'selected' : ''; ?>>⚧️ Other</option>
-                    </select>
+            <div class="form-group">
+                <label class="form-label">Gender</label>
+                <div style="display: flex; gap: var(--spacing-lg); margin-top: var(--spacing-sm);">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="gender" value="Male" <?php echo ($member->gender == 'Male') ? 'checked' : ''; ?> style="margin-right: var(--spacing-xs);">
+                        <span>♂️ Male</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="gender" value="Female" <?php echo ($member->gender == 'Female') ? 'checked' : ''; ?> style="margin-right: var(--spacing-xs);">
+                        <span>♀️ Female</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="gender" value="Other" <?php echo ($member->gender == 'Other') ? 'checked' : ''; ?> style="margin-right: var(--spacing-xs);">
+                        <span>⚧️ Other</span>
+                    </label>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="photo_url">Photo URL</label>
-                    <input
-                        type="url"
-                        id="photo_url"
-                        name="photo_url"
-                        value="<?php echo esc_attr($member->photo_url); ?>"
-                        placeholder="https://example.com/photo.jpg"
-                    >
-                </div>
+            <div class="form-group">
+                <label class="form-label" for="photo_url">Photo URL</label>
+                <input
+                    type="url"
+                    id="photo_url"
+                    name="photo_url"
+                    value="<?php echo esc_attr($member->photo_url ?: ''); ?>"
+                    placeholder="https://example.com/photo.jpg"
+                >
             </div>
         </div>
 
@@ -146,29 +152,26 @@ ob_start();
                     <select id="parent1_id" name="parent1_id">
                         <option value="">-- None --</option>
                         <?php foreach ($all_members as $m): ?>
-                            <?php if ($m->id != $member_id): // Don't show self as parent ?>
+                            <?php if ($m->id != $member_id && $m->gender === 'Male'): // Only show males, not self ?>
                                 <option value="<?php echo intval($m->id); ?>" <?php echo ($member->parent1_id == $m->id) ? 'selected' : ''; ?>>
                                     <?php echo esc_html($m->first_name . ' ' . $m->last_name . ' (b. ' . ($m->birth_date ?: 'N/A') . ')'); ?>
                                 </option>
                             <?php endif; ?>
                         <?php endforeach; ?>
                     </select>
-                    <small class="form-help">Optional. Leave empty for ancestors without recorded father.</small>
+                    <small class="form-help">Only male members shown. Leave empty for ancestors without recorded father.</small>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="parent2_id">Mother (Parent 2)</label>
-                    <select id="parent2_id" name="parent2_id">
-                        <option value="">-- None (Root Ancestor) --</option>
-                        <?php foreach ($all_members as $m): ?>
-                            <?php if ($m->id != $member_id): // Don't show self as parent ?>
-                                <option value="<?php echo intval($m->id); ?>" <?php echo ($member->parent2_id == $m->id) ? 'selected' : ''; ?>>
-                                    <?php echo esc_html($m->first_name . ' ' . $m->last_name . ' (b. ' . ($m->birth_date ?: 'N/A') . ')'); ?>
-                                </option>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </select>
-                    <small class="form-help">Optional. Leave empty for family founders.</small>
+                    <label class="form-label" for="parent2_name">Mother Name (Parent 2)</label>
+                    <input
+                        type="text"
+                        id="parent2_name"
+                        name="parent2_name"
+                        value="<?php echo esc_attr($member->parent2_name ?? ''); ?>"
+                        placeholder="e.g., Mary Smith"
+                    >
+                    <small class="form-help">Optional. Enter mother's name as text for now.</small>
                 </div>
             </div>
         </div>
@@ -180,18 +183,18 @@ ob_start();
             <div class="form-row form-row-3">
                 <div class="form-group">
                     <label class="form-label" for="birth_date">Birth Date</label>
-                    <input type="date" id="birth_date" name="birth_date" value="<?php echo esc_attr($member->birth_date); ?>">
+                    <input type="date" id="birth_date" name="birth_date" value="<?php echo esc_attr($member->birth_date ?? ''); ?>">
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="death_date">Death Date</label>
-                    <input type="date" id="death_date" name="death_date" value="<?php echo esc_attr($member->death_date); ?>">
+                    <input type="date" id="death_date" name="death_date" value="<?php echo esc_attr($member->death_date ?? ''); ?>">
                     <small class="form-help">Leave empty if still living</small>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="marriage_date">Marriage Date</label>
-                    <input type="date" id="marriage_date" name="marriage_date" value="<?php echo esc_attr($member->marriage_date); ?>">
+                    <input type="date" id="marriage_date" name="marriage_date" value="<?php echo esc_attr($member->marriage_date ?? ''); ?>">
                 </div>
             </div>
         </div>
@@ -206,7 +209,7 @@ ob_start();
                     type="text"
                     id="address"
                     name="address"
-                    value="<?php echo esc_attr($member->address); ?>"
+                    value="<?php echo esc_attr($member->address ?? ''); ?>"
                     placeholder="Street address"
                 >
             </div>
@@ -214,22 +217,22 @@ ob_start();
             <div class="form-row form-row-2">
                 <div class="form-group">
                     <label class="form-label" for="city">City</label>
-                    <input type="text" id="city" name="city" value="<?php echo esc_attr($member->city); ?>" placeholder="e.g., London">
+                    <input type="text" id="city" name="city" value="<?php echo esc_attr($member->city ?? ''); ?>" placeholder="e.g., London">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="state">State/Province</label>
-                    <input type="text" id="state" name="state" value="<?php echo esc_attr($member->state); ?>" placeholder="e.g., England">
+                    <input type="text" id="state" name="state" value="<?php echo esc_attr($member->state ?? ''); ?>" placeholder="e.g., England">
                 </div>
             </div>
 
             <div class="form-row form-row-2">
                 <div class="form-group">
                     <label class="form-label" for="country">Country</label>
-                    <input type="text" id="country" name="country" value="<?php echo esc_attr($member->country); ?>" placeholder="e.g., United Kingdom">
+                    <input type="text" id="country" name="country" value="<?php echo esc_attr($member->country ?? ''); ?>" placeholder="e.g., United Kingdom">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="postal_code">Postal Code</label>
-                    <input type="text" id="postal_code" name="postal_code" value="<?php echo esc_attr($member->postal_code); ?>" placeholder="e.g., SW1A 1AA">
+                    <input type="text" id="postal_code" name="postal_code" value="<?php echo esc_attr($member->postal_code ?? ''); ?>" placeholder="e.g., SW1A 1AA">
                 </div>
             </div>
         </div>
@@ -243,7 +246,7 @@ ob_start();
                     id="biography"
                     name="biography"
                     placeholder="Share interesting facts, achievements, and memories about this family member..."
-                ><?php echo esc_textarea($member->biography); ?></textarea>
+                ><?php echo esc_textarea($member->biography ?? ''); ?></textarea>
                 <small class="form-help">Optional. Write a short biography or notes about this person</small>
             </div>
         </div>

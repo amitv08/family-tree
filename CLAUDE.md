@@ -6,8 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a **Family Tree WordPress Plugin** - a complete genealogy and clan management system for WordPress. The plugin enables creating family trees, managing members and clans, and visualizing relationships with an interactive D3.js tree view.
 
-**Current Version:** 2.3.2
+**Current Version:** 2.4.0
 **Author:** Amit Vengsarkar
+
+**Architecture:** Modern MVC with PSR-4 autoloading, namespaces, and separation of concerns
 
 ## Development Environment
 
@@ -29,32 +31,62 @@ The site runs with debug mode enabled in `wp-config.php`:
 
 ## Plugin Architecture
 
-### Core Structure
+### Core Structure (Refactored v2.4.0)
 ```
 family-tree/
-├── family-tree.php          # Main plugin file, bootstraps everything
-├── includes/                # PHP business logic
-│   ├── database.php         # Members database operations
-│   ├── clans-database.php   # Clans database operations
-│   ├── roles.php            # WordPress role/capability setup
-│   └── shortcodes.php       # WordPress shortcode handlers
+├── family-tree.php          # Slim bootstrap file with autoloader
+├── includes/                # PHP business logic (namespaced)
+│   ├── Autoloader.php       # PSR-4 autoloader
+│   ├── Config.php           # Constants and configuration
+│   ├── Plugin.php           # Main plugin class
+│   ├── Router.php           # URL routing with middleware
+│   ├── Controllers/         # AJAX request handlers
+│   │   ├── BaseController.php
+│   │   ├── ClanController.php
+│   │   ├── MemberController.php
+│   │   └── UserController.php
+│   ├── Repositories/        # Database abstraction layer
+│   │   ├── BaseRepository.php
+│   │   ├── MemberRepository.php
+│   │   └── ClanRepository.php
+│   ├── Validators/          # Input validation
+│   │   └── MemberValidator.php
+│   ├── Services/            # Business logic (future)
+│   ├── Models/              # DTOs (future)
+│   ├── database.php         # Legacy - Members DB (backward compat)
+│   ├── clans-database.php   # Legacy - Clans DB (backward compat)
+│   ├── roles.php            # Role setup
+│   └── shortcodes.php       # Shortcode handlers
 ├── templates/               # PHP templates for frontend
-│   ├── components/          # Reusable UI components (header, page-layout)
-│   ├── members/             # CRUD pages for members
-│   ├── clans/               # CRUD pages for clans
-│   ├── dashboard.php        # Main family dashboard
-│   ├── login.php            # Custom login page
+│   ├── components/          # Reusable UI components
+│   ├── members/             # Member CRUD pages
+│   ├── clans/               # Clan CRUD pages
+│   ├── dashboard.php        # Main dashboard
+│   ├── login.php            # Login page
 │   └── tree-view.php        # D3.js tree visualization
 └── assets/
-    ├── css/                 # Modular CSS (variables, base, layout, forms, components, responsive)
+    ├── css/                 # Modular CSS
     └── js/                  # JavaScript modules
-        ├── script.js        # General utilities
-        ├── clans.js         # Clan CRUD logic
-        ├── members.js       # Member CRUD logic
-        ├── family-tree.js   # Legacy/utility functions
-        └── tree.js          # D3.js tree rendering
-
 ```
+
+### Architecture Patterns
+
+**PSR-4 Autoloading:**
+- Namespace: `FamilyTree\`
+- Base directory: `includes/`
+- Automatic class loading via `Autoloader.php`
+
+**MVC Pattern:**
+- **Controllers** (`Controllers/`): Handle AJAX requests, validate input
+- **Repositories** (`Repositories/`): Database operations, query abstraction
+- **Validators** (`Validators/`): Input validation logic
+- **Router** (`Router.php`): URL routing with middleware for auth/permissions
+
+**Design Principles:**
+- Single Responsibility: Each class has one job
+- Dependency Injection: Controllers receive dependencies
+- DRY: Base classes eliminate code duplication
+- Type Safety: PHP 7.4+ type hints throughout
 
 ### Database Schema
 
@@ -78,8 +110,9 @@ family-tree/
 ### Routing System
 
 The plugin uses **custom URL routing** (not WordPress pages/posts):
-- Routing handled in `FamilyTreePlugin::handle_routes()` via `template_redirect` action
-- Routes map URI patterns to template files directly
+- Routing handled by `Router` class via `template_redirect` action
+- Routes defined in `Config::ROUTES` constant
+- Middleware applied automatically for auth/permission checks
 - Homepage automatically redirects to `/family-dashboard`
 
 **Available Routes:**
@@ -100,14 +133,16 @@ The plugin creates 4 custom WordPress roles:
 
 Role setup happens in `includes/roles.php` → `FamilyTreeRoles::setup_roles()`
 
-### AJAX Architecture
+### AJAX Architecture (Refactored)
 
-All AJAX calls are handled through WordPress admin-ajax.php:
-- **Security:** AJAX actions use `wp_nonce` verification (`family_tree_nonce`)
-- **JavaScript:** `family_tree.ajax_url` and `family_tree.nonce` localized via `wp_localize_script()`
-- **Actions registered in main plugin class:**
-  - Clans: `add_clan`, `update_clan`, `delete_clan`, `get_clan`, `get_clan_details`, `get_all_clans_simple`
-  - Members: `add_family_member`, `update_family_member`, `delete_family_member`, `soft_delete_member`, `restore_member`, `search_members_select2`
+All AJAX calls are handled through WordPress admin-ajax.php with controller pattern:
+- **Security:** Nonce verification in `BaseController::verify_nonce()`
+- **JavaScript:** `family_tree.ajax_url` and `family_tree.nonce` localized
+- **Controllers handle actions:**
+  - **ClanController**: `add_clan`, `update_clan`, `delete_clan`, `get_clan_details`, `get_all_clans_simple`
+  - **MemberController**: `add_family_member`, `update_family_member`, `delete_family_member`, `soft_delete_member`, `restore_member`, `search_members_select2`
+  - **UserController**: `create_family_user`, `update_user_role`, `delete_family_user`
+- **Action names** defined in `Config` class constants
 
 ### Frontend Dependencies
 
@@ -226,17 +261,19 @@ git push
 - Adds default roles and grants super admin to site admin
 - Always call `flush_rewrite_rules()` after route changes
 
-### Adding New Routes
-1. Add route pattern in `handle_routes()` method
+### Adding New Routes (v2.4.0+)
+1. Add route pattern in `Config::ROUTES` array
 2. Create corresponding template in `templates/` folder
-3. Reactivate plugin to flush rewrite rules
+3. Optionally add middleware logic in `Router::apply_middleware()`
+4. Reactivate plugin to flush rewrite rules
 
-### Adding New AJAX Actions
-1. Create public method in `FamilyTreePlugin` class (e.g., `ajax_my_action()`)
-2. Register in constructor: `add_action('wp_ajax_my_action', [$this, 'ajax_my_action'])`
-3. Use `check_ajax_referer('family_tree_nonce', 'nonce')` for security
-4. Return JSON via `wp_send_json_success()` or `wp_send_json_error()`
-5. Call from JavaScript via `family_tree.ajax_url` with `nonce: family_tree.nonce`
+### Adding New AJAX Actions (v2.4.0+)
+1. Add action constant to `Config` class (e.g., `const AJAX_MY_ACTION = 'my_action'`)
+2. Create method in appropriate controller (e.g., `MemberController::my_action()`)
+3. Register in `Plugin::register_hooks()`: `add_action('wp_ajax_' . Config::AJAX_MY_ACTION, [$this->controllers['member'], 'my_action'])`
+4. Use `$this->verify_nonce()` and `$this->verify_capability()` in controller
+5. Return via `$this->success()` or `$this->error()`
+6. Call from JavaScript via `family_tree.ajax_url` with `action` and `nonce`
 
 ### WordPress Coding Standards
 - Use WordPress functions over native PHP where available (e.g., `wp_redirect()`, `esc_html()`, `sanitize_text_field()`)
@@ -244,11 +281,69 @@ git push
 - Sanitize all input: `sanitize_text_field()`, `intval()`, etc.
 - Use `ABSPATH` check at top of PHP files: `if (!defined('ABSPATH')) exit;`
 
+## Refactoring Guide (v2.4.0)
+
+### What Changed
+
+**Version 2.4.0** introduced a complete architectural refactoring while maintaining 100% backward compatibility:
+
+**New:**
+- PSR-4 autoloading with namespaces (`FamilyTree\`)
+- MVC pattern (Controllers, Repositories, Validators)
+- Config class for constants (no more magic strings)
+- Router class with middleware
+- Type hints throughout (PHP 7.4+)
+- Base classes to eliminate duplication
+
+**Backward Compatible:**
+- All existing database classes (`FamilyTreeDatabase`, `FamilyTreeClanDatabase`) still work
+- Templates unchanged
+- JavaScript/AJAX unchanged
+- Database schema unchanged
+
+### Migration Path
+
+**Old code (still works):**
+```php
+// Direct database access
+$members = FamilyTreeDatabase::get_members();
+
+// AJAX in main plugin file
+public function ajax_add_member() {
+    check_ajax_referer('family_tree_nonce', 'nonce');
+    // logic here
+}
+```
+
+**New code (recommended):**
+```php
+// Repository pattern
+use FamilyTree\Repositories\MemberRepository;
+$repo = new MemberRepository();
+$members = $repo->get_members();
+
+// Controller pattern
+use FamilyTree\Controllers\MemberController;
+class MemberController extends BaseController {
+    public function add() {
+        $this->verify_nonce();
+        $this->verify_capability(Config::CAP_EDIT_FAMILY_MEMBERS);
+        // logic here
+    }
+}
+```
+
+### Benefits
+- **Testability**: Can mock repositories, test controllers in isolation
+- **Maintainability**: Smaller, focused classes (Single Responsibility)
+- **Extensibility**: Easy to add features without modifying core
+- **Type Safety**: PHP catches errors at development time
+- **Performance**: No impact (autoloader is fast, lazy loading)
+
 ## Known Issues & Technical Debt
 
-- Some duplicate `require_once` calls (safe but redundant)
-- Mixed routing approach (custom routes + shortcodes defined but unused)
-- No automated tests
+- Legacy database classes kept for backward compatibility (will migrate templates in future)
+- No automated tests (planned for future)
 - CSS could be further consolidated
 - Tree visualization only shows descendants (no ancestors view)
 
@@ -260,9 +355,10 @@ git push
 **Modify member form:**
 - Edit `templates/members/add-member.php` or `edit-member.php`
 
-**Change member AJAX logic:**
-- Edit `family-tree.php` → `ajax_add_family_member()` or `ajax_update_family_member()`
-- Edit `includes/database.php` → `add_member()` or `update_member()`
+**Change member AJAX logic (v2.4.0+):**
+- Edit `includes/Controllers/MemberController.php` → method `add()` or `update()`
+- Edit `includes/Repositories/MemberRepository.php` → method `add()` or `update()`
+- Validation logic in `includes/Validators/MemberValidator.php`
 
 **Style changes:**
 - Edit appropriate CSS file in `assets/css/`

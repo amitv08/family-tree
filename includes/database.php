@@ -121,6 +121,7 @@ class FamilyTreeDatabase {
             "ADD COLUMN biography TEXT NULL",
             "ADD COLUMN parent1_id MEDIUMINT(9) DEFAULT NULL",
             "ADD COLUMN parent2_id MEDIUMINT(9) DEFAULT NULL",
+            "ADD COLUMN parent2_name VARCHAR(200) DEFAULT NULL",
             "ADD COLUMN created_by MEDIUMINT(9) DEFAULT NULL",
             "ADD COLUMN updated_by MEDIUMINT(9) DEFAULT NULL",
             "ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP",
@@ -277,6 +278,7 @@ class FamilyTreeDatabase {
             'biography' => isset($data['biography']) ? sanitize_textarea_field($data['biography']) : null,
             'parent1_id' => isset($data['parent1_id']) && $data['parent1_id'] !== '' ? intval($data['parent1_id']) : null,
             'parent2_id' => isset($data['parent2_id']) && $data['parent2_id'] !== '' ? intval($data['parent2_id']) : null,
+            'parent2_name' => isset($data['parent2_name']) ? sanitize_text_field($data['parent2_name']) : null,
             'created_by' => get_current_user_id() ?: null,
             'created_at' => $now,
             'updated_by' => get_current_user_id() ?: null,
@@ -318,6 +320,7 @@ class FamilyTreeDatabase {
             'biography' => isset($data['biography']) ? sanitize_textarea_field($data['biography']) : null,
             'parent1_id' => isset($data['parent1_id']) && $data['parent1_id'] !== '' ? intval($data['parent1_id']) : null,
             'parent2_id' => isset($data['parent2_id']) && $data['parent2_id'] !== '' ? intval($data['parent2_id']) : null,
+            'parent2_name' => isset($data['parent2_name']) ? sanitize_text_field($data['parent2_name']) : null,
             'updated_by' => get_current_user_id() ?: null,
             'updated_at' => $now,
             'address' => isset($data['address']) ? sanitize_textarea_field($data['address']) : null,
@@ -355,18 +358,66 @@ class FamilyTreeDatabase {
 
 public static function validate_member_data($data, $member_id = null) {
     $errors = [];
-    
+
     // If editing, check against current ID
     $current_id = $member_id ? intval($member_id) : null;
-    
+
+    // Check: Required field lengths (matching database schema)
+    if (isset($data['first_name']) && strlen($data['first_name']) > 100) {
+        $errors[] = 'First name is too long (maximum 100 characters).';
+    }
+    if (isset($data['last_name']) && strlen($data['last_name']) > 100) {
+        $errors[] = 'Last name is too long (maximum 100 characters).';
+    }
+    if (isset($data['gender']) && strlen($data['gender']) > 20) {
+        $errors[] = 'Gender value is too long (maximum 20 characters).';
+    }
+    if (isset($data['photo_url']) && strlen($data['photo_url']) > 255) {
+        $errors[] = 'Photo URL is too long (maximum 255 characters).';
+    }
+
+    // Check: Photo URL must be a valid image format
+    if (!empty($data['photo_url'])) {
+        $url = $data['photo_url'];
+        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+        $parsed_url = parse_url($url);
+
+        if ($parsed_url && isset($parsed_url['path'])) {
+            $path_info = pathinfo($parsed_url['path']);
+            $extension = isset($path_info['extension']) ? strtolower($path_info['extension']) : '';
+
+            if (!empty($extension) && !in_array($extension, $allowed_extensions)) {
+                $errors[] = 'Photo URL must be a valid image file (jpg, jpeg, png, gif, webp, bmp, or svg).';
+            }
+        }
+    }
+    if (isset($data['biography']) && strlen($data['biography']) > 10000) {
+        $errors[] = 'Biography is too long (maximum 10,000 characters).';
+    }
+    if (isset($data['address']) && strlen($data['address']) > 500) {
+        $errors[] = 'Address is too long (maximum 500 characters).';
+    }
+    if (isset($data['city']) && strlen($data['city']) > 100) {
+        $errors[] = 'City is too long (maximum 100 characters).';
+    }
+    if (isset($data['state']) && strlen($data['state']) > 100) {
+        $errors[] = 'State is too long (maximum 100 characters).';
+    }
+    if (isset($data['country']) && strlen($data['country']) > 100) {
+        $errors[] = 'Country is too long (maximum 100 characters).';
+    }
+    if (isset($data['postal_code']) && strlen($data['postal_code']) > 20) {
+        $errors[] = 'Postal code is too long (maximum 20 characters).';
+    }
+
     $parent1_id = !empty($data['parent1_id']) ? intval($data['parent1_id']) : null;
     $parent2_id = !empty($data['parent2_id']) ? intval($data['parent2_id']) : null;
-    
+
     // Check: Person cannot be their own parent
     if ($current_id && ($parent1_id == $current_id || $parent2_id == $current_id)) {
         $errors[] = 'A person cannot be their own parent.';
     }
-    
+
     // Check: Parent 1 and Parent 2 must be different
     if ($parent1_id && $parent2_id && $parent1_id == $parent2_id) {
         $errors[] = 'Parent 1 and Parent 2 must be different people.';

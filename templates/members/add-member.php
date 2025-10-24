@@ -94,26 +94,32 @@ ob_start();
                 </div>
             </div>
 
-            <div class="form-row form-row-2">
-                <div class="form-group">
-                    <label class="form-label" for="gender">Gender</label>
-                    <select id="gender" name="gender">
-                        <option value="">-- Select --</option>
-                        <option value="Male">♂️ Male</option>
-                        <option value="Female">♀️ Female</option>
-                        <option value="Other">⚧️ Other</option>
-                    </select>
+            <div class="form-group">
+                <label class="form-label">Gender</label>
+                <div style="display: flex; gap: var(--spacing-lg); margin-top: var(--spacing-sm);">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="gender" value="Male" style="margin-right: var(--spacing-xs);">
+                        <span>♂️ Male</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="gender" value="Female" style="margin-right: var(--spacing-xs);">
+                        <span>♀️ Female</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="gender" value="Other" style="margin-right: var(--spacing-xs);">
+                        <span>⚧️ Other</span>
+                    </label>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="photo_url">Photo URL</label>
-                    <input 
-                        type="url" 
-                        id="photo_url" 
-                        name="photo_url" 
-                        placeholder="https://example.com/photo.jpg"
-                    >
-                </div>
+            <div class="form-group">
+                <label class="form-label" for="photo_url">Photo URL</label>
+                <input
+                    type="url"
+                    id="photo_url"
+                    name="photo_url"
+                    placeholder="https://example.com/photo.jpg"
+                >
             </div>
         </div>
 
@@ -128,25 +134,25 @@ ob_start();
                     <select id="parent1_id" name="parent1_id">
                         <option value="">-- None --</option>
                         <?php foreach ($all_members as $m): ?>
-                            <option value="<?php echo intval($m->id); ?>">
-                                <?php echo esc_html($m->first_name . ' ' . $m->last_name . ' (b. ' . ($m->birth_date ?: 'N/A') . ')'); ?>
-                            </option>
+                            <?php if ($m->gender === 'Male'): ?>
+                                <option value="<?php echo intval($m->id); ?>">
+                                    <?php echo esc_html($m->first_name . ' ' . $m->last_name . ' (b. ' . ($m->birth_date ?: 'N/A') . ')'); ?>
+                                </option>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </select>
-                    <small class="form-help">Optional. Leave empty for ancestors without recorded father.</small>
+                    <small class="form-help">Only male members shown. Leave empty for ancestors without recorded father.</small>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="parent2_id">Mother (Parent 2)</label>
-                    <select id="parent2_id" name="parent2_id">
-                        <option value="">-- None (Root Ancestor) --</option>
-                        <?php foreach ($all_members as $m): ?>
-                            <option value="<?php echo intval($m->id); ?>">
-                                <?php echo esc_html($m->first_name . ' ' . $m->last_name . ' (b. ' . ($m->birth_date ?: 'N/A') . ')'); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <small class="form-help">Optional. Leave empty for family founders.</small>
+                    <label class="form-label" for="parent2_name">Mother Name (Parent 2)</label>
+                    <input
+                        type="text"
+                        id="parent2_name"
+                        name="parent2_name"
+                        placeholder="e.g., Mary Smith"
+                    >
+                    <small class="form-help">Optional. Enter mother's name as text for now.</small>
                 </div>
             </div>
         </div>
