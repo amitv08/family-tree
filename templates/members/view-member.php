@@ -519,6 +519,156 @@ ob_start();
     </div>
 </div>
 
+<!-- Marriage Modal -->
+<div id="marriageModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 id="marriageModalTitle" style="margin: 0;">Add Marriage</h3>
+            <button class="modal-close" onclick="closeMarriageModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="marriageForm">
+                <input type="hidden" id="marriage_id" name="marriage_id">
+                <input type="hidden" id="current_member_id" name="current_member_id" value="<?php echo intval($member->id); ?>">
+                <input type="hidden" id="current_member_gender" name="current_member_gender" value="<?php echo esc_attr($member->gender); ?>">
+
+                <div class="form-group">
+                    <label for="spouse_name">Spouse Name *</label>
+                    <input type="text" id="spouse_name" name="spouse_name" class="form-control" required
+                           placeholder="Enter spouse's full name">
+                    <small class="form-help">Enter the spouse's name (or select from existing members in future version)</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="marriage_date">Marriage Date</label>
+                        <input type="date" id="marriage_date" name="marriage_date" class="form-control">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="marriage_location">Location</label>
+                        <input type="text" id="marriage_location" name="marriage_location" class="form-control"
+                               placeholder="e.g., New York, NY">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="marriage_status">Status *</label>
+                        <select id="marriage_status" name="marriage_status" class="form-control" required>
+                            <option value="married">Married</option>
+                            <option value="divorced">Divorced</option>
+                            <option value="widowed">Widowed</option>
+                            <option value="annulled">Annulled</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="marriage_order">Marriage Order</label>
+                        <input type="number" id="marriage_order" name="marriage_order" class="form-control"
+                               min="1" value="1" placeholder="1">
+                        <small class="form-help">1st, 2nd, 3rd marriage, etc.</small>
+                    </div>
+                </div>
+
+                <div id="divorceFields" style="display: none;">
+                    <div class="form-group">
+                        <label for="divorce_date">Divorce Date</label>
+                        <input type="date" id="divorce_date" name="divorce_date" class="form-control">
+                    </div>
+                </div>
+
+                <div id="widowedFields" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="end_date">End Date</label>
+                            <input type="date" id="end_date" name="end_date" class="form-control">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="end_reason">End Reason</label>
+                            <input type="text" id="end_reason" name="end_reason" class="form-control"
+                                   placeholder="e.g., death of spouse">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" class="form-control" rows="3"
+                              placeholder="Additional notes about this marriage (optional)"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeMarriageModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveMarriageBtn" onclick="saveMarriage()">
+                <span id="saveMarriageBtnText">Save Marriage</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal control functions
+function openMarriageModal(mode = 'add', marriageData = null) {
+    const modal = document.getElementById('marriageModal');
+    const title = document.getElementById('marriageModalTitle');
+    const form = document.getElementById('marriageForm');
+
+    // Reset form
+    form.reset();
+
+    if (mode === 'add') {
+        title.textContent = 'Add Marriage';
+        document.getElementById('marriage_id').value = '';
+        document.getElementById('saveMarriageBtnText').textContent = 'Save Marriage';
+    } else {
+        title.textContent = 'Edit Marriage';
+        document.getElementById('saveMarriageBtnText').textContent = 'Update Marriage';
+
+        // Pre-fill form with existing data
+        if (marriageData) {
+            document.getElementById('marriage_id').value = marriageData.id || '';
+            document.getElementById('spouse_name').value = marriageData.spouse_name || '';
+            document.getElementById('marriage_date').value = marriageData.marriage_date || '';
+            document.getElementById('marriage_location').value = marriageData.marriage_location || '';
+            document.getElementById('marriage_status').value = marriageData.marriage_status || 'married';
+            document.getElementById('marriage_order').value = marriageData.marriage_order || 1;
+            document.getElementById('divorce_date').value = marriageData.divorce_date || '';
+            document.getElementById('end_date').value = marriageData.end_date || '';
+            document.getElementById('end_reason').value = marriageData.end_reason || '';
+            document.getElementById('notes').value = marriageData.notes || '';
+
+            // Trigger status change to show/hide conditional fields
+            toggleMarriageStatusFields();
+        }
+    }
+
+    modal.style.display = 'flex';
+}
+
+function closeMarriageModal() {
+    document.getElementById('marriageModal').style.display = 'none';
+}
+
+function toggleMarriageStatusFields() {
+    const status = document.getElementById('marriage_status').value;
+    const divorceFields = document.getElementById('divorceFields');
+    const widowedFields = document.getElementById('widowedFields');
+
+    divorceFields.style.display = status === 'divorced' ? 'block' : 'none';
+    widowedFields.style.display = status === 'widowed' ? 'block' : 'none';
+}
+
+// Listen for status changes
+document.getElementById('marriage_status')?.addEventListener('change', toggleMarriageStatusFields);
+
+// Close modal when clicking outside
+document.getElementById('marriageModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeMarriageModal();
+    }
+});
+</script>
+
 <script src="<?php echo esc_url(plugins_url('assets/js/members.js', FAMILY_TREE_PATH . 'family-tree.php')); ?>"></script>
 
 <?php

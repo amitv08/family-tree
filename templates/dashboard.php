@@ -35,7 +35,8 @@ ob_start();
                 <?php
                 $genders = ['male' => 0, 'female' => 0, 'other' => 0];
                 foreach ($members as $m) {
-                    $genders[$m->gender] = ($genders[$m->gender] ?? 0) + 1;
+                    $gender_key = strtolower($m->gender ?? 'other');
+                    $genders[$gender_key] = ($genders[$gender_key] ?? 0) + 1;
                 }
                 echo '♂ ' . $genders['male'] . ' • ♀ ' . $genders['female'];
                 if ($genders['other'] > 0) echo ' • ⚧ ' . $genders['other'];

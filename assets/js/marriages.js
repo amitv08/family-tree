@@ -1,64 +1,23 @@
 /**
  * Family Tree - Marriages JavaScript
- * Handles CRUD operations for marriages
+ * Handles CRUD operations for marriages with modal UI
  */
 
 jQuery(document).ready(function($){
 
-    // Add Marriage
+    // Add Marriage - Open Modal
     $(document).on('click', '.btn-add-marriage', function(e){
         e.preventDefault();
-
         var memberId = $(this).data('member-id');
-        var memberGender = $(this).data('member-gender'); // Optional: to pre-fill husband/wife
 
-        // Simple prompt-based form (can be enhanced to modal later)
-        var proceed = confirm('Add a new marriage for this member?');
-        if (!proceed) return;
+        // Set member ID in hidden field
+        $('#current_member_id').val(memberId);
 
-        // Collect data via prompts (temporary - should be modal form)
-        var spouseName = prompt('Enter spouse name (or leave blank to select from members):');
-        var marriageDate = prompt('Marriage date (YYYY-MM-DD or leave blank):');
-        var marriageLocation = prompt('Marriage location (optional):');
-        var marriageStatus = prompt('Status (married/divorced/widowed/annulled):', 'married');
-
-        var data = {
-            action: 'add_marriage',
-            nonce: family_tree.nonce,
-        };
-
-        // Determine husband/wife based on member gender (simplified)
-        // In a real modal, we'd have proper dropdowns
-        if (memberGender && memberGender.toLowerCase() === 'male') {
-            data.husband_id = memberId;
-            data.wife_name = spouseName;
-        } else if (memberGender && memberGender.toLowerCase() === 'female') {
-            data.wife_id = memberId;
-            data.husband_name = spouseName;
-        } else {
-            // Default to husband if gender unknown
-            data.husband_id = memberId;
-            data.wife_name = spouseName;
-        }
-
-        if (marriageDate) data.marriage_date = marriageDate;
-        if (marriageLocation) data.marriage_location = marriageLocation;
-        if (marriageStatus) data.marriage_status = marriageStatus;
-
-        // Submit
-        $.post(family_tree.ajax_url, data, function(res){
-            if (res.success) {
-                showToast('Marriage added successfully', 'success');
-                setTimeout(() => location.reload(), 800);
-            } else {
-                showToast('Error: ' + (res.data || 'Unable to add marriage'), 'error');
-            }
-        }).fail(function() {
-            showToast('Connection error. Please try again.', 'error');
-        });
+        // Open modal in add mode
+        openMarriageModal('add');
     });
 
-    // Edit Marriage
+    // Edit Marriage - Open Modal with Data
     $(document).on('click', '.btn-edit-marriage', function(e){
         e.preventDefault();
 
@@ -77,51 +36,21 @@ jQuery(document).ready(function($){
 
             var marriage = res.data.marriage;
 
-            // Prompt for updates
-            var marriageDate = prompt('Marriage date (YYYY-MM-DD):', marriage.marriage_date || '');
-            var marriageLocation = prompt('Marriage location:', marriage.marriage_location || '');
-            var marriageStatus = prompt('Status (married/divorced/widowed/annulled):', marriage.marriage_status || 'married');
-            var divorceDate = null;
-            var endDate = null;
-            var endReason = null;
-            var notes = null;
-
-            if (marriageStatus === 'divorced') {
-                divorceDate = prompt('Divorce date (YYYY-MM-DD or leave blank):', marriage.divorce_date || '');
-            }
-
-            if (marriageStatus === 'widowed') {
-                endDate = prompt('End date (YYYY-MM-DD or leave blank):', marriage.end_date || '');
-                endReason = prompt('End reason:', marriage.end_reason || 'death of spouse');
-            }
-
-            notes = prompt('Notes (optional):', marriage.notes || '');
-
-            var data = {
-                action: 'update_marriage',
-                nonce: family_tree.nonce,
-                marriage_id: marriageId,
-                marriage_status: marriageStatus,
-            };
-
-            if (marriageDate) data.marriage_date = marriageDate;
-            if (marriageLocation) data.marriage_location = marriageLocation;
-            if (divorceDate) data.divorce_date = divorceDate;
-            if (endDate) data.end_date = endDate;
-            if (endReason) data.end_reason = endReason;
-            if (notes) data.notes = notes;
-
-            // Submit update
-            $.post(family_tree.ajax_url, data, function(res){
-                if (res.success) {
-                    showToast('Marriage updated successfully', 'success');
-                    setTimeout(() => location.reload(), 800);
-                } else {
-                    showToast('Error: ' + (res.data || 'Unable to update marriage'), 'error');
-                }
-            }).fail(function() {
-                showToast('Connection error. Please try again.', 'error');
+            // Open modal in edit mode with pre-filled data
+            openMarriageModal('edit', {
+                id: marriage.id,
+                spouse_name: getSpouseNameFromMarriage(marriage),
+                marriage_date: marriage.marriage_date,
+                marriage_location: marriage.marriage_location,
+                marriage_status: marriage.marriage_status,
+                marriage_order: marriage.marriage_order,
+                divorce_date: marriage.divorce_date,
+                end_date: marriage.end_date,
+                end_reason: marriage.end_reason,
+                notes: marriage.notes
             });
+        }).fail(function() {
+            showToast('Connection error. Please try again.', 'error');
         });
     });
 
@@ -158,4 +87,98 @@ jQuery(document).ready(function($){
             btn.prop('disabled', false).html(originalHtml);
         });
     });
+
+    // Helper function to extract spouse name from marriage object
+    function getSpouseNameFromMarriage(marriage) {
+        var currentMemberId = $('#current_member_id').val();
+
+        // Determine which spouse name to show
+        if (marriage.husband_id == currentMemberId) {
+            // Current member is husband, show wife
+            if (marriage.wife_id) {
+                var wife_middle = marriage.wife_middle_name ? marriage.wife_middle_name + ' ' : '';
+                return marriage.wife_first_name + ' ' + wife_middle + marriage.wife_last_name;
+            } else {
+                return marriage.wife_name || '';
+            }
+        } else {
+            // Current member is wife, show husband
+            if (marriage.husband_id) {
+                var husband_middle = marriage.husband_middle_name ? marriage.husband_middle_name + ' ' : '';
+                return marriage.husband_first_name + ' ' + husband_middle + marriage.husband_last_name;
+            } else {
+                return marriage.husband_name || '';
+            }
+        }
+    }
 });
+
+// Save Marriage Function (called from modal)
+function saveMarriage() {
+    var marriageId = jQuery('#marriage_id').val();
+    var isEdit = marriageId && marriageId !== '';
+
+    var memberId = jQuery('#current_member_id').val();
+    var memberGender = jQuery('#current_member_gender').val();
+    var spouseName = jQuery('#spouse_name').val();
+
+    if (!spouseName) {
+        showToast('Please enter spouse name', 'error');
+        return;
+    }
+
+    // Prepare data
+    var data = {
+        action: isEdit ? 'update_marriage' : 'add_marriage',
+        nonce: family_tree.nonce,
+        marriage_date: jQuery('#marriage_date').val(),
+        marriage_location: jQuery('#marriage_location').val(),
+        marriage_status: jQuery('#marriage_status').val(),
+        marriage_order: jQuery('#marriage_order').val() || 1,
+        divorce_date: jQuery('#divorce_date').val(),
+        end_date: jQuery('#end_date').val(),
+        end_reason: jQuery('#end_reason').val(),
+        notes: jQuery('#notes').val()
+    };
+
+    // Add marriage ID if editing
+    if (isEdit) {
+        data.marriage_id = marriageId;
+    }
+
+    // Determine husband/wife based on member gender
+    if (memberGender && memberGender.toLowerCase() === 'male') {
+        data.husband_id = memberId;
+        data.wife_name = spouseName;
+    } else if (memberGender && memberGender.toLowerCase() === 'female') {
+        data.wife_id = memberId;
+        data.husband_name = spouseName;
+    } else {
+        // Default to husband if gender unknown
+        data.husband_id = memberId;
+        data.wife_name = spouseName;
+    }
+
+    // Show loading
+    var saveBtn = jQuery('#saveMarriageBtn');
+    var originalText = jQuery('#saveMarriageBtnText').text();
+    saveBtn.prop('disabled', true);
+    jQuery('#saveMarriageBtnText').text('Saving...');
+
+    // Submit
+    jQuery.post(family_tree.ajax_url, data, function(res){
+        if (res.success) {
+            showToast(isEdit ? 'Marriage updated successfully' : 'Marriage added successfully', 'success');
+            closeMarriageModal();
+            setTimeout(() => location.reload(), 800);
+        } else {
+            showToast('Error: ' + (res.data || 'Unable to save marriage'), 'error');
+            saveBtn.prop('disabled', false);
+            jQuery('#saveMarriageBtnText').text(originalText);
+        }
+    }).fail(function() {
+        showToast('Connection error. Please try again.', 'error');
+        saveBtn.prop('disabled', false);
+        jQuery('#saveMarriageBtnText').text(originalText);
+    });
+}
