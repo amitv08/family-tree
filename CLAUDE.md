@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Family Tree WordPress Plugin** - a complete genealogy and clan management system for WordPress. The plugin enables creating family trees, managing members and clans, and visualizing relationships with an interactive D3.js tree view.
+This is a **Family Tree WordPress Plugin** - a complete genealogy and clan management system for WordPress. The plugin enables creating family trees, managing members and clans, tracking multiple marriages, and visualizing relationships with an interactive D3.js tree view.
 
-**Current Version:** 2.4.0
+**Current Version:** 3.1.0
 **Author:** Amit Vengsarkar
 
 **Architecture:** Modern MVC with PSR-4 autoloading, namespaces, and separation of concerns
@@ -44,11 +44,13 @@ family-tree/
 │   │   ├── BaseController.php
 │   │   ├── ClanController.php
 │   │   ├── MemberController.php
+│   │   ├── MarriageController.php  # v3.0.0+
 │   │   └── UserController.php
 │   ├── Repositories/        # Database abstraction layer
 │   │   ├── BaseRepository.php
 │   │   ├── MemberRepository.php
-│   │   └── ClanRepository.php
+│   │   ├── ClanRepository.php
+│   │   └── MarriageRepository.php  # v3.0.0+
 │   ├── Validators/          # Input validation
 │   │   └── MemberValidator.php
 │   ├── Services/            # Business logic (future)
@@ -95,7 +97,14 @@ family-tree/
   - Includes soft delete via `is_deleted` flag
   - Audit fields: `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id`
   - Address fields: `address`, `city`, `state`, `country`, `postal_code`
-  - Links to: `clan_id`, `clan_location_id`, `clan_surname_id`, `parent1_id`, `parent2_id`
+  - Links to: `clan_id`, `clan_location_id`, `clan_surname_id`, `parent1_id`, `parent2_id`, `parent_marriage_id`
+
+- `family_marriages` - Multiple marriages tracking (v3.0.0+)
+  - Fields: `husband_id`, `wife_id`, `husband_name`, `wife_name`
+  - Marriage details: `marriage_date`, `marriage_location`, `marriage_order`, `marriage_status`
+  - End tracking: `divorce_date`, `end_date`, `end_reason`, `notes`
+  - Audit fields: `created_by`, `updated_by`, `created_at`, `updated_at`
+  - Foreign keys to `family_members`
 
 - `family_clans` - Clan/family group definitions
   - Fields: `clan_name`, `description`, `origin_year`

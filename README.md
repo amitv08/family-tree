@@ -1,11 +1,31 @@
 # 🧬 Family Tree Plugin for WordPress
 
 A complete genealogy and clan management plugin for WordPress.
-It enables you to create **family trees**, manage **members**, organize them into **clans**, and visualize relationships interactively.
+It enables you to create **family trees**, manage **members**, organize them into **clans**, track **multiple marriages**, and visualize relationships interactively.
 
-**Version:** 2.5.0
+**Version:** 3.1.0
 **Author:** Amit Vengsarkar
 **License:** GPL-2.0+
+
+---
+
+## 🎉 What's New in v3.1.0
+
+### Marriage Form Integration
+- **Marital status dropdown** in member add/edit forms (Unmarried/Married/Divorced/Widowed)
+- **Conditional marriage details section** appears when married/divorced/widowed
+- Spouse name, marriage date, location, divorce date, and notes all in one form
+- Marriages save automatically with member data
+- Works seamlessly for both male and female members
+
+### Enhanced Tree Visualization
+- **Zoom In/Out buttons** (🔍 +/−) for precise control
+- **Mouse wheel zoom** support (10% to 300% scale)
+- **Click and drag** to pan around large family trees
+- **Reset view button** to return to default position
+- Perfect for growing family trees with many generations
+
+See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 
 ---
 
@@ -19,6 +39,17 @@ It enables you to create **family trees**, manage **members**, organize them int
   - Store detailed bio, gender, birth/death dates, location, and more
   - Soft delete and restore functionality
   - Gender-based filtering for parent selection
+  - **Marital status tracking** (Unmarried, Married, Divorced, Widowed)
+  - **Integrated marriage form** within member add/edit pages
+
+- **Multiple Marriages Support** ⭐ NEW in v3.0.0
+  - Track unlimited marriages per person (polygamy, remarriage, divorce)
+  - Complete marriage details: spouse, date, location, status, notes
+  - Marriage status tracking: Married, Divorced, Widowed, Annulled
+  - Link children to specific marriages (half-sibling tracking)
+  - View marriage history on member profile pages
+  - Add/Edit/Delete marriages with permission control
+  - Automatic data migration from old single marriage date
 
 - **Clans Module**
   - Group members under clans
@@ -33,18 +64,22 @@ It enables you to create **family trees**, manage **members**, organize them int
   - Dependent dropdowns update based on clan selection
   - Automatically link clan details while adding or editing a member
 
-- **Tree Visualization**
+- **Tree Visualization** ⭐ Enhanced in v3.1.0
   - Interactive D3.js tree view
-  - Color-coded clans
-  - Zoom, pan, and filter by clan
-  - Tooltips showing member and clan information
+  - Color-coded clans with living/deceased indicators
+  - **Zoom controls**: Zoom In (+), Zoom Out (-), Reset View
+  - **Mouse wheel zoom** for smooth scaling (10% to 300%)
+  - **Click and drag** to pan around large trees
+  - Filter by clan
+  - Hover tooltips showing member and clan information
+  - Responsive design for all screen sizes
 
 - **User Roles & Permissions**
   - Family Super Admin (full access)
   - Family Admin (manage members and users)
   - Family Editor (edit members only)
   - Family Viewer (read-only access)
-  - Role-based CRUD access for clans and members
+  - Role-based CRUD access for clans, members, and marriages
 
 ---
 
@@ -71,9 +106,15 @@ It enables you to create **family trees**, manage **members**, organize them int
    - Click "Activate"
 
 3. **Plugin activation will**:
-   - Create database tables (`wp_family_members`, `wp_family_clans`, etc.)
+   - Create database tables:
+     - `wp_family_members` - Member records
+     - `wp_family_clans` - Clan information
+     - `wp_family_marriages` - Marriage records (v3.0.0+)
+     - `wp_clan_locations` - Clan locations
+     - `wp_clan_surnames` - Clan surnames
    - Set up custom user roles and permissions
    - Grant super admin access to the site administrator
+   - Run automatic data migration for existing records
 
 4. **Access the plugin**:
    - Navigate to: `http://yoursite.com/family-dashboard`
@@ -120,15 +161,32 @@ It enables you to create **family trees**, manage **members**, organize them int
 2. Select clan (required)
 3. Fill in personal details (name, gender, dates)
 4. Select father (filtered to males only)
-5. Enter mother's name (text field)
-6. Add location and biography (optional)
-7. Save
+5. Enter mother's name (text field or dropdown)
+6. **Select marital status** (Unmarried/Married/Divorced/Widowed)
+7. If married/divorced/widowed, fill in marriage details:
+   - Spouse name
+   - Marriage date and location
+   - Divorce date (if applicable)
+   - Notes
+8. Add location and biography (optional)
+9. Save (member and marriage are saved together)
 
 **Edit a Member:**
 1. Navigate to `/edit-member?id=X`
-2. Modify any field
-3. Click "Update Member"
-4. Changes are saved with audit trail
+2. Modify any field including marital status
+3. Update marriage details if status is married/divorced/widowed
+4. Click "Update Member"
+5. Changes are saved with audit trail
+
+**View Member Profile:**
+- Navigate to `/view-member?id=X`
+- See complete profile with:
+  - Personal information
+  - Life events (birth, death, marital status)
+  - **Marriage history** (all marriages listed)
+  - Children grouped by marriage
+  - Clan information
+  - Add/Edit/Delete marriages directly from profile
 
 ### Managing Clans
 
@@ -326,6 +384,15 @@ For issues, questions, or feature requests:
 
 ## 🗺️ Roadmap
 
+### ✅ Recently Completed
+
+- [x] **Multiple marriages support** (v3.0.0) - Track unlimited marriages per person
+- [x] **Marriage form integration** (v3.1.0) - Add marriages within member forms
+- [x] **Tree zoom controls** (v3.1.0) - Enhanced zoom and pan functionality
+- [x] **Marital status tracking** (v3.1.0) - Dropdown with conditional marriage details
+- [x] **Smart update strategy for clans** (v2.5.0) - Preserve member references
+- [x] **MVC architecture refactoring** (v2.4.0) - Modern code organization
+
 ### Upcoming Features
 
 - [ ] Advanced search and filtering
@@ -333,9 +400,10 @@ For issues, questions, or feature requests:
 - [ ] Import from CSV/Excel
 - [ ] Photo gallery for members
 - [ ] Timeline view of family events
-- [ ] Mobile app integration
+- [ ] Ancestor view in tree (currently shows descendants only)
 - [ ] Multi-language support
 - [ ] Advanced reporting and statistics
+- [ ] Print-friendly family tree views
 
 ### Under Consideration
 
@@ -344,6 +412,8 @@ For issues, questions, or feature requests:
 - [ ] Document attachment system
 - [ ] Collaborative editing
 - [ ] Public family tree sharing
+- [ ] Mobile app integration
+- [ ] Family event calendar
 
 ---
 
