@@ -221,7 +221,7 @@ ob_start();
         $marriages = FamilyTreeDatabase::get_marriages_for_member($member->id);
         if (!empty($marriages)):
         ?>
-            <div class="card" style="margin-bottom: var(--spacing-xl);">
+            <div id="marriages-section" class="card" style="margin-bottom: var(--spacing-xl);">
                 <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="margin: 0;">💍 Marriages</h3>
                     <?php if (current_user_can('edit_family_members')): ?>
@@ -450,8 +450,51 @@ ob_start();
                     <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">
                         Death:
                     </dt>
-                    <dd style="margin: 0; color: var(--color-text-secondary);">
+                    <dd style="margin: 0 0 var(--spacing-lg) 0; color: var(--color-text-secondary);">
                         <?php echo $member->death_date ? esc_html(date('M j, Y', strtotime($member->death_date))) : '<em>Still living</em>'; ?>
+                    </dd>
+
+                    <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">
+                        Marital Status:
+                    </dt>
+                    <dd style="margin: 0; color: var(--color-text-secondary);">
+                        <?php
+                        // Determine marital status from marriages
+                        if (empty($marriages)) {
+                            echo '<span class="badge badge-secondary">Unmarried</span>';
+                        } else {
+                            // Get most recent marriage (last in array)
+                            $latest_marriage = end($marriages);
+                            $status = ucfirst($latest_marriage->marriage_status);
+                            $badge_class = 'badge-secondary';
+
+                            switch($latest_marriage->marriage_status) {
+                                case 'married':
+                                    $badge_class = 'badge-success';
+                                    break;
+                                case 'divorced':
+                                    $badge_class = 'badge-warning';
+                                    break;
+                                case 'widowed':
+                                    $badge_class = 'badge-info';
+                                    break;
+                                case 'annulled':
+                                    $badge_class = 'badge-secondary';
+                                    break;
+                            }
+
+                            echo '<span class="badge ' . $badge_class . '">' . esc_html($status) . '</span>';
+
+                            // Show count if multiple marriages
+                            if (count($marriages) > 1) {
+                                echo ' <small style="color: var(--color-text-light);">(' . count($marriages) . ' marriages)</small>';
+                            }
+
+                            echo '<br><small style="color: var(--color-text-light); margin-top: var(--spacing-xs); display: inline-block;">
+                                <a href="#marriages-section" style="color: var(--color-primary);">View marriage details →</a>
+                            </small>';
+                        }
+                        ?>
                     </dd>
                 </dl>
             </div>

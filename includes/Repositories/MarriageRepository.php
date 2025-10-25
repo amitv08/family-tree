@@ -149,6 +149,37 @@ class MarriageRepository extends BaseRepository {
     }
 
     /**
+     * Get a single marriage with spouse details
+     *
+     * @param int $id Marriage ID
+     * @return object|null
+     */
+    public function get_marriage_with_details(int $id): ?object {
+        $members_table = Config::get_table_name(Config::TABLE_MEMBERS);
+
+        $sql = "
+            SELECT
+                m.*,
+                h.first_name as husband_first_name,
+                h.middle_name as husband_middle_name,
+                h.last_name as husband_last_name,
+                w.first_name as wife_first_name,
+                w.middle_name as wife_middle_name,
+                w.last_name as wife_last_name
+            FROM {$this->table} m
+            LEFT JOIN {$members_table} h ON m.husband_id = h.id
+            LEFT JOIN {$members_table} w ON m.wife_id = w.id
+            WHERE m.id = %d
+        ";
+
+        $result = $this->wpdb->get_row(
+            $this->wpdb->prepare($sql, $id)
+        );
+
+        return $result ?: null;
+    }
+
+    /**
      * Get marriages with full details (including spouse names and children count)
      *
      * @param int $limit Limit

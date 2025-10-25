@@ -108,7 +108,7 @@ class MarriageController extends BaseController {
         $this->verify_capability(Config::CAP_EDIT_FAMILY_MEMBERS);
 
         $marriage_id = $this->get_post_int('marriage_id');
-        $marriage = $this->repository->find($marriage_id);
+        $marriage = $this->repository->get_marriage_with_details($marriage_id);
 
         if ($marriage) {
             $this->success('Marriage found', ['marriage' => $marriage]);
