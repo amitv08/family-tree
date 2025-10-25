@@ -10,6 +10,7 @@ namespace FamilyTree;
 
 use FamilyTree\Controllers\ClanController;
 use FamilyTree\Controllers\MemberController;
+use FamilyTree\Controllers\MarriageController;
 use FamilyTree\Controllers\UserController;
 
 if (!defined('ABSPATH')) exit;
@@ -49,6 +50,7 @@ class Plugin {
     private function init_controllers(): void {
         $this->controllers['clan'] = new ClanController();
         $this->controllers['member'] = new MemberController();
+        $this->controllers['marriage'] = new MarriageController();
         $this->controllers['user'] = new UserController();
     }
 
@@ -84,6 +86,14 @@ class Plugin {
         add_action('wp_ajax_' . Config::AJAX_UPDATE_USER_ROLE, [$this->controllers['user'], 'update_role']);
         add_action('wp_ajax_' . Config::AJAX_DELETE_FAMILY_USER, [$this->controllers['user'], 'delete']);
 
+        // Phase 2: AJAX hooks for marriages
+        add_action('wp_ajax_' . Config::AJAX_ADD_MARRIAGE, [$this->controllers['marriage'], 'add']);
+        add_action('wp_ajax_' . Config::AJAX_UPDATE_MARRIAGE, [$this->controllers['marriage'], 'update']);
+        add_action('wp_ajax_' . Config::AJAX_DELETE_MARRIAGE, [$this->controllers['marriage'], 'delete']);
+        add_action('wp_ajax_' . Config::AJAX_GET_MARRIAGE_DETAILS, [$this->controllers['marriage'], 'get_details']);
+        add_action('wp_ajax_' . Config::AJAX_GET_MARRIAGES_FOR_MEMBER, [$this->controllers['marriage'], 'get_marriages_for_member']);
+        add_action('wp_ajax_' . Config::AJAX_GET_CHILDREN_FOR_MARRIAGE, [$this->controllers['marriage'], 'get_children_for_marriage']);
+
         // Security: Configure nonce lifetime
         add_filter('nonce_life', [$this, 'configure_nonce_lifetime']);
     }
@@ -104,6 +114,10 @@ class Plugin {
         \FamilyTreeClanDatabase::setup_tables();
         \FamilyTreeDatabase::migrate_members_add_clan();
         \FamilyTreeDatabase::apply_schema_updates();
+
+        // Phase 2: Migrate existing marriage_date data to marriages table
+        \FamilyTreeDatabase::migrate_existing_marriages();
+
         \FamilyTreeRoles::setup_roles();
 
         flush_rewrite_rules();

@@ -60,6 +60,14 @@ class Config {
     public const AJAX_UPDATE_USER_ROLE = 'update_user_role';
     public const AJAX_DELETE_FAMILY_USER = 'delete_family_user';
 
+    // Phase 2 - Marriage AJAX actions
+    public const AJAX_ADD_MARRIAGE = 'add_marriage';
+    public const AJAX_UPDATE_MARRIAGE = 'update_marriage';
+    public const AJAX_DELETE_MARRIAGE = 'delete_marriage';
+    public const AJAX_GET_MARRIAGE_DETAILS = 'get_marriage_details';
+    public const AJAX_GET_MARRIAGES_FOR_MEMBER = 'get_marriages_for_member';
+    public const AJAX_GET_CHILDREN_FOR_MARRIAGE = 'get_children_for_marriage';
+
     /**
      * Nonce names
      */
