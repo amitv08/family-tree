@@ -49,7 +49,7 @@ ob_start();
         <div class="section">
             <h2 class="section-title">🏰 Clan Information</h2>
 
-            <div class="form-row form-row-2">
+            <div class="form-row form-row-3">
                 <div class="form-group">
                     <label class="form-label required" for="clan_id">Clan</label>
                     <select id="clan_id" name="clan_id" required>
@@ -70,44 +70,13 @@ ob_start();
                     </select>
                     <small class="form-help">Primary location for this clan member</small>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="clan_surname_id">Surname</label>
-                <select id="clan_surname_id" name="clan_surname_id">
-                    <option value="">-- Select Surname --</option>
-                </select>
-                <small class="form-help">Auto-filled from surname; editable</small>
-            </div>
-        </div>
-
-        <!-- Personal Information Section -->
-        <div class="section">
-            <h2 class="section-title">👤 Personal Information</h2>
-
-            <div class="form-row form-row-2">
-                <div class="form-group">
-                    <label class="form-label required" for="first_name">First Name</label>
-                    <input
-                        type="text"
-                        id="first_name"
-                        name="first_name"
-                        required
-                        value="<?php echo esc_attr($member->first_name); ?>"
-                        placeholder="e.g., John"
-                    >
-                </div>
 
                 <div class="form-group">
-                    <label class="form-label required" for="last_name">Last Name</label>
-                    <input
-                        type="text"
-                        id="last_name_input"
-                        name="last_name"
-                        required
-                        value="<?php echo esc_attr($member->last_name); ?>"
-                        placeholder="e.g., Smith"
-                    >
+                    <label class="form-label" for="clan_surname_id">Surname</label>
+                    <select id="clan_surname_id" name="clan_surname_id">
+                        <option value="">-- Select Surname --</option>
+                    </select>
+                    <small class="form-help">Auto-filled from surname; editable</small>
                 </div>
             </div>
 
@@ -126,6 +95,83 @@ ob_start();
                         <input type="radio" name="gender" value="Other" <?php echo ($member->gender == 'Other') ? 'checked' : ''; ?> style="margin-right: var(--spacing-xs);">
                         <span>⚧️ Other</span>
                     </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; cursor: pointer; margin-top: var(--spacing-md);">
+                    <input type="checkbox" id="is_adopted" name="is_adopted" value="1" <?php echo ($member->is_adopted ?? 0) ? 'checked' : ''; ?> style="margin-right: var(--spacing-sm);">
+                    <span>🤝 This person is adopted</span>
+                </label>
+                <small class="form-help">Check if this member was adopted by the parents listed below</small>
+            </div>
+        </div>
+
+        <!-- Personal Information Section -->
+        <div class="section">
+            <h2 class="section-title">👤 Personal Information</h2>
+
+            <div class="form-row form-row-3">
+                <div class="form-group">
+                    <label class="form-label required" for="first_name">First Name</label>
+                    <input
+                        type="text"
+                        id="first_name"
+                        name="first_name"
+                        required
+                        value="<?php echo esc_attr($member->first_name); ?>"
+                        placeholder="e.g., John"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="middle_name">Middle Name</label>
+                    <input
+                        type="text"
+                        id="middle_name"
+                        name="middle_name"
+                        value="<?php echo esc_attr($member->middle_name ?? ''); ?>"
+                        placeholder="e.g., William"
+                    >
+                    <small class="form-help">Middle name or initial (optional)</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required" for="last_name">Last Name</label>
+                    <input
+                        type="text"
+                        id="last_name_input"
+                        name="last_name"
+                        required
+                        value="<?php echo esc_attr($member->last_name); ?>"
+                        placeholder="e.g., Smith"
+                    >
+                </div>
+            </div>
+
+            <div class="form-row form-row-2">
+                <div class="form-group">
+                    <label class="form-label" for="nickname">Nickname</label>
+                    <input
+                        type="text"
+                        id="nickname"
+                        name="nickname"
+                        value="<?php echo esc_attr($member->nickname ?? ''); ?>"
+                        placeholder="e.g., Bob"
+                    >
+                    <small class="form-help">Common name or nickname (optional)</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="maiden_name">Maiden Name (Birth Surname)</label>
+                    <input
+                        type="text"
+                        id="maiden_name"
+                        name="maiden_name"
+                        value="<?php echo esc_attr($member->maiden_name ?? ''); ?>"
+                        placeholder="Birth surname before marriage"
+                    >
+                    <small class="form-help">For women: surname at birth, before marriage</small>
                 </div>
             </div>
 
@@ -163,15 +209,46 @@ ob_start();
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="parent2_name">Mother Name (Parent 2)</label>
+                    <label class="form-label" for="parent2">Mother (Parent 2)</label>
+
+                    <!-- Radio toggle for mother input type -->
+                    <?php
+                    $mother_input_type = !empty($member->parent2_id) ? 'select' : 'text';
+                    ?>
+                    <div style="display: flex; gap: var(--spacing-lg); margin-bottom: var(--spacing-sm);">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="mother_input_type" value="text" <?php echo ($mother_input_type === 'text') ? 'checked' : ''; ?> style="margin-right: var(--spacing-xs);">
+                            <span>Enter name manually</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="mother_input_type" value="select" <?php echo ($mother_input_type === 'select') ? 'checked' : ''; ?> style="margin-right: var(--spacing-xs);">
+                            <span>Select existing member</span>
+                        </label>
+                    </div>
+
+                    <!-- Text input -->
                     <input
                         type="text"
                         id="parent2_name"
                         name="parent2_name"
                         value="<?php echo esc_attr($member->parent2_name ?? ''); ?>"
                         placeholder="e.g., Mary Smith"
+                        style="display:<?php echo ($mother_input_type === 'text') ? 'block' : 'none'; ?>;"
                     >
-                    <small class="form-help">Optional. Enter mother's name as text for now.</small>
+
+                    <!-- Dropdown -->
+                    <select id="parent2_id" name="parent2_id" style="display:<?php echo ($mother_input_type === 'select') ? 'block' : 'none'; ?>;">
+                        <option value="">-- None --</option>
+                        <?php foreach ($all_members as $m): ?>
+                            <?php if ($m->id != $member_id && $m->gender === 'Female'): ?>
+                                <option value="<?php echo intval($m->id); ?>" <?php echo ($member->parent2_id == $m->id) ? 'selected' : ''; ?>>
+                                    <?php echo esc_html($m->first_name . ' ' . $m->last_name . ' (b. ' . ($m->birth_date ?: 'N/A') . ')'); ?>
+                                </option>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <small class="form-help">Enter manually if not in system, or select from existing female members</small>
                 </div>
             </div>
         </div>
@@ -280,6 +357,27 @@ jQuery(function($) {
             noResults: () => 'No members found'
         }
     });
+
+    // Toggle between mother text input and dropdown
+    $('input[name="mother_input_type"]').on('change', function() {
+        if ($(this).val() === 'select') {
+            $('#parent2_name').hide().val(''); // Hide text input and clear value
+            $('#parent2_id').next('.select2-container').show(); // Show Select2 widget
+            $('#parent2_id').show(); // Show dropdown
+        } else {
+            $('#parent2_id').next('.select2-container').hide(); // Hide Select2 widget
+            $('#parent2_id').hide().val(''); // Hide dropdown and clear value
+            $('#parent2_name').show(); // Show text input
+        }
+    });
+
+    // Initialize: Set correct visibility based on initial selection
+    var initialMotherType = $('input[name="mother_input_type"]:checked').val();
+    if (initialMotherType === 'text') {
+        $('#parent2_id').next('.select2-container').hide();
+    } else {
+        $('#parent2_name').hide();
+    }
 
     // Load clan details when clan selected
     function loadClanDetails(clanId, preSelectedLocationId, preSelectedSurnameId) {

@@ -53,7 +53,7 @@ abstract class BaseController {
      * @param mixed $default Default value if not set
      * @return mixed Sanitized value
      */
-    protected function get_post(string $key, $default = '') {
+    protected function get_post(string $key, mixed $default = ''): mixed {
         return isset($_POST[$key]) ? sanitize_text_field($_POST[$key]) : $default;
     }
 

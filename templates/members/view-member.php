@@ -19,12 +19,19 @@ if (!$member) {
 
 $can_manage = current_user_can('manage_family') || current_user_can('family_super_admin');
 
+// Build full name with middle name if available
+$full_name = $member->first_name;
+if (!empty($member->middle_name)) {
+    $full_name .= ' ' . $member->middle_name;
+}
+$full_name .= ' ' . $member->last_name;
+
 $breadcrumbs = [
     ['label' => 'Dashboard', 'url' => '/family-dashboard'],
     ['label' => 'Members', 'url' => '/browse-members'],
-    ['label' => $member->first_name . ' ' . $member->last_name],
+    ['label' => $full_name],
 ];
-$page_title = '👤 ' . $member->first_name . ' ' . $member->last_name;
+$page_title = '👤 ' . $full_name;
 $page_actions = '
     ' . (current_user_can('edit_family_members') ? '
     <a href="/edit-member?id=' . intval($member->id) . '" class="btn btn-primary btn-sm">
@@ -45,7 +52,13 @@ ob_start();
         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--spacing-xl);">
             <div style="flex: 1;">
                 <h2 style="color: white; margin: 0 0 var(--spacing-md) 0; font-size: var(--font-size-2xl);">
-                    👤 <?php echo esc_html($member->first_name . ' ' . $member->last_name); ?>
+                    👤 <?php echo esc_html($full_name); ?>
+                    <?php if (!empty($member->nickname)): ?>
+                        <span style="font-weight: normal; font-size: var(--font-size-lg);">(<?php echo esc_html($member->nickname); ?>)</span>
+                    <?php endif; ?>
+                    <?php if (!empty($member->maiden_name)): ?>
+                        <span style="font-weight: normal; font-size: var(--font-size-md); opacity: 0.9;">née <?php echo esc_html($member->maiden_name); ?></span>
+                    <?php endif; ?>
                 </h2>
                 <?php if ($member->birth_date): ?>
                     <p style="margin: var(--spacing-sm) 0; opacity: 0.95;">
@@ -93,7 +106,7 @@ ob_start();
                         Full Name:
                     </dt>
                     <dd style="margin: 0 0 var(--spacing-lg) 0; color: var(--color-text-secondary);">
-                        <?php echo esc_html($member->first_name . ' ' . $member->last_name); ?>
+                        <?php echo esc_html($full_name); ?>
                     </dd>
 
                     <?php if ($member->gender): ?>
@@ -114,7 +127,28 @@ ob_start();
                         <?php else: ?>
                             <span class="badge badge-success">🟢 Living</span>
                         <?php endif; ?>
+                        <?php if (!empty($member->is_adopted)): ?>
+                            <span class="badge badge-info" style="margin-left: var(--spacing-sm);">🤝 Adopted</span>
+                        <?php endif; ?>
                     </dd>
+
+                    <?php if (!empty($member->nickname)): ?>
+                        <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">
+                            Nickname:
+                        </dt>
+                        <dd style="margin: 0 0 var(--spacing-lg) 0; color: var(--color-text-secondary);">
+                            <?php echo esc_html($member->nickname); ?>
+                        </dd>
+                    <?php endif; ?>
+
+                    <?php if (!empty($member->maiden_name)): ?>
+                        <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">
+                            Maiden Name (Birth Surname):
+                        </dt>
+                        <dd style="margin: 0 0 var(--spacing-lg) 0; color: var(--color-text-secondary);">
+                            <?php echo esc_html($member->maiden_name); ?>
+                        </dd>
+                    <?php endif; ?>
 
                     <?php if ($member->is_deleted): ?>
                         <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">

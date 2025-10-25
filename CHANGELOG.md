@@ -7,6 +7,134 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.0] - 2025-10-24
+
+### Added - Phase 2 Quick Win
+
+- **Middle Name Field**: New `middle_name` field for complete name tracking
+  - Optional field stored between first name and last name
+  - Displayed as "First Middle Last" throughout the system
+  - Added to add/edit member forms in 3-column layout
+  - Automatically included in full name display on view pages
+  - Database column: `middle_name VARCHAR(100) DEFAULT NULL`
+
+### Changed
+
+- **Name Display**: Member names now shown as "First Middle Last" when middle name is present
+- **Form Layout**: First name, middle name, and last name fields now in single 3-column row for better UX
+- **Type Safety**: Fixed missing type declarations in `MemberRepository::add()` and `BaseController::get_post()`
+- **Router**: Added null coalescing operator for `$_SERVER['REQUEST_URI']` to prevent undefined key warnings
+
+### Technical Details
+
+- Updated `FamilyTreeDatabase::add_member()` to handle middle_name
+- Updated `FamilyTreeDatabase::update_member()` to handle middle_name
+- Updated `MemberRepository::add()` to handle middle_name
+- Updated `MemberRepository::update()` to handle middle_name
+- Updated `templates/members/add-member.php` with middle_name input
+- Updated `templates/members/edit-member.php` with middle_name input
+- Updated `templates/members/view-member.php` to display middle_name in full name
+- Schema migration via `apply_schema_updates()` adds column automatically on plugin reactivation
+
+### Migration Notes
+
+**To apply these changes:**
+1. Deactivate the plugin in WordPress Admin → Plugins
+2. Activate the plugin again
+3. The `middle_name` column will be automatically added to the database
+4. Existing members will have NULL middle_name (optional field)
+
+---
+
+## [2.5.0] - 2025-10-24
+
+### Added - Phase 1 Genealogy Features
+
+- **Adoption Status**: New `is_adopted` checkbox field to mark adopted family members
+  - Displayed as badge on view member page
+  - No biological parent tracking (as per requirements)
+
+- **Nickname Field**: New `nickname` field for common names or nicknames
+  - Displayed in parentheses after full name: "Robert (Bob) Smith"
+  - Optional field for all members
+
+- **Maiden Name Field**: New `maiden_name` field to track birth surname before marriage
+  - For women: stores surname at birth, before marriage
+  - Current `last_name` field stores married/current surname
+  - Displayed as "Mary Smith (née Johnson)" on view page
+
+- **Mother Input Toggle**: Flexible mother selection in Family Relationships section
+  - Radio button toggle between:
+    - "Enter name manually" (text input for `parent2_name`) - DEFAULT
+    - "Select existing member" (dropdown filtered to female members for `parent2_id`)
+  - Allows tracking mothers who aren't in the system yet
+  - Enables distinguishing half-siblings by different mothers
+
+### Changed - Form Reorganization
+
+- **Clan Information Section Layout**:
+  - Clan, Location, and Surname now displayed in single row (3 columns)
+  - More compact and efficient use of space
+
+- **Field Order Restructure**:
+  - Gender radio buttons moved from Personal Information to Clan Information section
+  - Adoption checkbox moved from Personal Information to Clan Information section
+  - Both now appear immediately after clan/location/surname selection
+  - Improves logical flow: clan details → personal attributes → family relationships
+
+- **Label Clarifications**:
+  - "Maiden Name" → "Maiden Name (Birth Surname)"
+  - Help text updated: "For women: surname at birth, before marriage"
+
+### Removed
+
+- **Birth Order Fields** (removed based on user feedback):
+  - Removed `birth_order` field (was: order among siblings)
+  - Removed `is_multiple_birth` field (was: twin/triplet indicator)
+  - Simplified form to focus on core genealogy needs
+
+### Database Schema
+
+**New columns added to `wp_family_members`:**
+- `is_adopted` TINYINT(1) DEFAULT 0 - Adoption status checkbox
+- `maiden_name` VARCHAR(100) DEFAULT NULL - Birth surname before marriage
+- `nickname` VARCHAR(100) DEFAULT NULL - Common name or nickname
+
+**Note**: Birth order fields were initially added but removed in final version per user requirements.
+
+### Technical Details
+
+- Updated `add_member()` method to handle new fields
+- Updated `update_member()` method to handle new fields
+- Updated `apply_schema_updates()` to add new columns on plugin reactivation
+- JavaScript toggle function for mother input type switching
+- Smart field detection in edit form (shows text or dropdown based on existing data)
+
+### UI/UX Improvements
+
+- Clan/Location/Surname in compact 3-column layout
+- Mother input radio toggle for flexible data entry
+- Logical grouping: Clan details → Gender/Adoption → Personal details
+- Clearer field labels and help text
+- Adopted and nickname badges on view page
+
+### Migration Notes
+
+**To apply these changes:**
+1. Deactivate the plugin in WordPress Admin → Plugins
+2. Activate the plugin again
+3. The 3 new database columns will be automatically added
+4. Existing data is preserved - new fields are optional
+
+### Backward Compatibility
+
+- ✅ All existing member data preserved
+- ✅ Optional fields - no required data entry
+- ✅ Both `parent2_id` and `parent2_name` supported (user can choose)
+- ✅ No breaking changes to existing functionality
+
+---
+
 ## [2.4.1] - 2025-10-24
 
 ### Added

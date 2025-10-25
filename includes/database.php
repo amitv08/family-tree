@@ -113,6 +113,7 @@ class FamilyTreeDatabase {
         $to_add = [
             "ADD COLUMN clan_id MEDIUMINT(9) DEFAULT NULL",
             "ADD COLUMN first_name VARCHAR(100) NOT NULL",
+            "ADD COLUMN middle_name VARCHAR(100) DEFAULT NULL COMMENT 'Middle name or initial'",
             "ADD COLUMN last_name VARCHAR(100) NOT NULL",
             "ADD COLUMN birth_date DATE DEFAULT NULL",
             "ADD COLUMN death_date DATE DEFAULT NULL",
@@ -136,6 +137,10 @@ class FamilyTreeDatabase {
             "ADD COLUMN clan_location_id MEDIUMINT(9) DEFAULT NULL",
             "ADD COLUMN clan_surname_id MEDIUMINT(9) DEFAULT NULL",
             "ADD COLUMN user_id MEDIUMINT(9) DEFAULT NULL",
+            // Phase 1 additions - October 2025
+            "ADD COLUMN is_adopted TINYINT(1) DEFAULT 0 COMMENT 'Is this person adopted?'",
+            "ADD COLUMN maiden_name VARCHAR(100) DEFAULT NULL COMMENT 'Birth surname before marriage'",
+            "ADD COLUMN nickname VARCHAR(100) DEFAULT NULL COMMENT 'Common name or nickname'",
         ];
 
         foreach ($to_add as $definition) {
@@ -269,6 +274,7 @@ class FamilyTreeDatabase {
         $insert = [
             'clan_id' => !empty($data['clan_id']) ? intval($data['clan_id']) : null,
             'first_name' => isset($data['first_name']) ? sanitize_text_field($data['first_name']) : '',
+            'middle_name' => isset($data['middle_name']) ? sanitize_text_field($data['middle_name']) : null,
             'last_name' => isset($data['last_name']) ? sanitize_text_field($data['last_name']) : '',
             'birth_date' => !empty($data['birth_date']) ? sanitize_text_field($data['birth_date']) : null,
             'death_date' => !empty($data['death_date']) ? sanitize_text_field($data['death_date']) : null,
@@ -292,6 +298,10 @@ class FamilyTreeDatabase {
             'clan_location_id' => isset($data['clan_location_id']) && $data['clan_location_id'] !== '' ? intval($data['clan_location_id']) : null,
             'clan_surname_id' => isset($data['clan_surname_id']) && $data['clan_surname_id'] !== '' ? intval($data['clan_surname_id']) : null,
             'user_id' => isset($data['user_id']) && $data['user_id'] !== '' ? intval($data['user_id']) : null,
+            // Phase 1 additions
+            'is_adopted' => isset($data['is_adopted']) ? intval($data['is_adopted']) : 0,
+            'maiden_name' => isset($data['maiden_name']) ? sanitize_text_field($data['maiden_name']) : null,
+            'nickname' => isset($data['nickname']) ? sanitize_text_field($data['nickname']) : null,
         ];
 
         $formats = array_fill(0, count($insert), '%s'); // wpdb will coerce where needed
@@ -311,6 +321,7 @@ class FamilyTreeDatabase {
         $update = [
             'clan_id' => !empty($data['clan_id']) ? intval($data['clan_id']) : null,
             'first_name' => isset($data['first_name']) ? sanitize_text_field($data['first_name']) : '',
+            'middle_name' => isset($data['middle_name']) ? sanitize_text_field($data['middle_name']) : null,
             'last_name' => isset($data['last_name']) ? sanitize_text_field($data['last_name']) : '',
             'birth_date' => !empty($data['birth_date']) ? sanitize_text_field($data['birth_date']) : null,
             'death_date' => !empty($data['death_date']) ? sanitize_text_field($data['death_date']) : null,
@@ -331,6 +342,10 @@ class FamilyTreeDatabase {
             'clan_location_id' => isset($data['clan_location_id']) && $data['clan_location_id'] !== '' ? intval($data['clan_location_id']) : null,
             'clan_surname_id' => isset($data['clan_surname_id']) && $data['clan_surname_id'] !== '' ? intval($data['clan_surname_id']) : null,
             'user_id' => isset($data['user_id']) && $data['user_id'] !== '' ? intval($data['user_id']) : null,
+            // Phase 1 additions
+            'is_adopted' => isset($data['is_adopted']) ? intval($data['is_adopted']) : 0,
+            'maiden_name' => isset($data['maiden_name']) ? sanitize_text_field($data['maiden_name']) : null,
+            'nickname' => isset($data['nickname']) ? sanitize_text_field($data['nickname']) : null,
         ];
 
         $res = $wpdb->update($table, $update, ['id' => intval($id)]);

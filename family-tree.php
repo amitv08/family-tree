@@ -2,11 +2,11 @@
 /**
  * Plugin Name: Family Tree
  * Description: Complete family tree management system with clans and members.
- * Version: 2.4.0
+ * Version: 2.6.0
  * Author: Amit Vengsarkar
  *
  * @package FamilyTree
- * @since 2.4.0
+ * @since 2.6.0
  */
 
 if (!defined('ABSPATH')) exit;

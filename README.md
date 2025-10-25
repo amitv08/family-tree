@@ -3,7 +3,7 @@
 A complete genealogy and clan management plugin for WordPress.
 It enables you to create **family trees**, manage **members**, organize them into **clans**, and visualize relationships interactively.
 
-**Version:** 2.4.1
+**Version:** 2.5.0
 **Author:** Amit Vengsarkar
 **License:** GPL-2.0+
 

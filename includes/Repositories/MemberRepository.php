@@ -49,12 +49,13 @@ class MemberRepository extends BaseRepository {
      * @param array $data Member data
      * @return int|false Member ID or false on failure
      */
-    public function add(array $data) {
+    public function add(array $data): int|false {
         $now = $this->get_current_timestamp();
 
         $insert = [
             'clan_id' => !empty($data['clan_id']) ? intval($data['clan_id']) : null,
             'first_name' => isset($data['first_name']) ? sanitize_text_field($data['first_name']) : '',
+            'middle_name' => isset($data['middle_name']) ? sanitize_text_field($data['middle_name']) : null,
             'last_name' => isset($data['last_name']) ? sanitize_text_field($data['last_name']) : '',
             'birth_date' => !empty($data['birth_date']) ? sanitize_text_field($data['birth_date']) : null,
             'death_date' => !empty($data['death_date']) ? sanitize_text_field($data['death_date']) : null,
@@ -103,6 +104,7 @@ class MemberRepository extends BaseRepository {
         $update = [
             'clan_id' => !empty($data['clan_id']) ? intval($data['clan_id']) : null,
             'first_name' => isset($data['first_name']) ? sanitize_text_field($data['first_name']) : '',
+            'middle_name' => isset($data['middle_name']) ? sanitize_text_field($data['middle_name']) : null,
             'last_name' => isset($data['last_name']) ? sanitize_text_field($data['last_name']) : '',
             'birth_date' => !empty($data['birth_date']) ? sanitize_text_field($data['birth_date']) : null,
             'death_date' => !empty($data['death_date']) ? sanitize_text_field($data['death_date']) : null,

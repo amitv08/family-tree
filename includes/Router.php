@@ -29,7 +29,7 @@ class Router {
      * Handle routing
      */
     public function handle(): void {
-        $uri = $_SERVER['REQUEST_URI'];
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
 
         foreach ($this->routes as $route => $template) {
             if (strpos($uri, $route) !== false) {
