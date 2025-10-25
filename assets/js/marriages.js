@@ -30,7 +30,7 @@ jQuery(document).ready(function($){
             marriage_id: marriageId
         }, function(res){
             if (!res.success) {
-                showToast('Error: Unable to load marriage details', 'error');
+                showToast('Error: ' + (res.data || 'Unable to load marriage details'), 'error');
                 return;
             }
 
@@ -76,7 +76,8 @@ jQuery(document).ready(function($){
             marriage_id: marriageId
         }, function(res){
             if (res.success) {
-                showToast('Marriage deleted successfully', 'success');
+                var message = (res.data && res.data.message) || 'Marriage deleted successfully';
+                showToast(message, 'success');
                 setTimeout(() => location.reload(), 800);
             } else {
                 showToast('Error: ' + (res.data || 'Unable to delete marriage'), 'error');
@@ -168,7 +169,8 @@ function saveMarriage() {
     // Submit
     jQuery.post(family_tree.ajax_url, data, function(res){
         if (res.success) {
-            showToast(isEdit ? 'Marriage updated successfully' : 'Marriage added successfully', 'success');
+            var message = (res.data && res.data.message) || (isEdit ? 'Marriage updated successfully' : 'Marriage added successfully');
+            showToast(message, 'success');
             closeMarriageModal();
             setTimeout(() => location.reload(), 800);
         } else {

@@ -9,10 +9,16 @@
 namespace FamilyTree\Controllers;
 
 use FamilyTree\Config;
+use FamilyTree\Repositories\MarriageRepository;
 
 if (!defined('ABSPATH')) exit;
 
 class MemberController extends BaseController {
+    private MarriageRepository $marriage_repository;
+
+    public function __construct() {
+        $this->marriage_repository = new MarriageRepository();
+    }
     /**
      * Add a new family member
      */
@@ -29,10 +35,13 @@ class MemberController extends BaseController {
             return;
         }
 
-        $result = \FamilyTreeDatabase::add_member($data);
+        $member_id = \FamilyTreeDatabase::add_member($data);
 
-        if ($result) {
-            $this->success('Member added successfully');
+        if ($member_id) {
+            // Handle marriage data if marital status is married, divorced, or widowed
+            $this->handle_marriage_save($member_id, $data);
+
+            $this->success(['message' => 'Member added successfully', 'member_id' => $member_id]);
         } else {
             $this->error('Failed to add member');
         }
@@ -57,7 +66,10 @@ class MemberController extends BaseController {
         $ok = \FamilyTreeDatabase::update_member($id, $_POST);
 
         if ($ok) {
-            $this->success('Member updated successfully');
+            // Handle marriage data if marital status is married, divorced, or widowed
+            $this->handle_marriage_save($id, $_POST);
+
+            $this->success(['message' => 'Member updated successfully']);
         } else {
             $this->error('Failed to update member');
         }
@@ -161,5 +173,79 @@ class MemberController extends BaseController {
 
         $results = \FamilyTreeDatabase::search_members($query, 20);
         wp_send_json($results ?: []);
+    }
+
+    /**
+     * Handle marriage save/update when member is saved
+     *
+     * @param int $member_id Member ID
+     * @param array $data Form data
+     * @return void
+     */
+    private function handle_marriage_save(int $member_id, array $data): void {
+        $marital_status = $data['marital_status'] ?? 'unmarried';
+
+        // Only process if marital status requires marriage details
+        if (!in_array($marital_status, ['married', 'divorced', 'widowed'])) {
+            return;
+        }
+
+        // Check if spouse name is provided
+        $spouse_name = $data['spouse_name'] ?? '';
+        if (empty($spouse_name)) {
+            return; // No spouse name, skip marriage save
+        }
+
+        // Get member data to determine gender
+        $member = \FamilyTreeDatabase::get_member($member_id);
+        if (!$member) {
+            return;
+        }
+
+        // Prepare marriage data
+        $marriage_data = [
+            'marriage_date' => $data['marriage_date'] ?? null,
+            'marriage_location' => $data['marriage_location'] ?? null,
+            'marriage_status' => $marital_status,
+            'notes' => $data['marriage_notes'] ?? null,
+        ];
+
+        // Set husband/wife based on member gender
+        $gender = strtolower($member->gender ?? 'other');
+        if ($gender === 'male') {
+            $marriage_data['husband_id'] = $member_id;
+            $marriage_data['wife_name'] = $spouse_name;
+        } elseif ($gender === 'female') {
+            $marriage_data['wife_id'] = $member_id;
+            $marriage_data['husband_name'] = $spouse_name;
+        } else {
+            // For 'other' or unknown gender, default to husband
+            $marriage_data['husband_id'] = $member_id;
+            $marriage_data['wife_name'] = $spouse_name;
+        }
+
+        // Add divorce date if status is divorced
+        if ($marital_status === 'divorced') {
+            $marriage_data['divorce_date'] = $data['divorce_date'] ?? null;
+        }
+
+        // Check if updating existing marriage or creating new one
+        $existing_marriage_id = isset($data['existing_marriage_id']) ? intval($data['existing_marriage_id']) : 0;
+
+        if ($existing_marriage_id > 0) {
+            // Update existing marriage
+            $this->marriage_repository->update($existing_marriage_id, $marriage_data);
+        } else {
+            // Check if there's already a marriage for this member
+            $existing_marriages = $this->marriage_repository->get_marriages_for_member($member_id);
+            if (!empty($existing_marriages)) {
+                // Update the latest marriage
+                $latest = end($existing_marriages);
+                $this->marriage_repository->update($latest->id, $marriage_data);
+            } else {
+                // Create new marriage
+                $this->marriage_repository->add($marriage_data);
+            }
+        }
     }
 }

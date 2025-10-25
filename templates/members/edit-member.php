@@ -270,9 +270,90 @@ ob_start();
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="marriage_date">Marriage Date</label>
-                    <input type="date" id="marriage_date" name="marriage_date" value="<?php echo esc_attr($member->marriage_date ?? ''); ?>">
+                    <?php
+                    // Get marriages for this member to determine marital status
+                    $marriages = FamilyTreeDatabase::get_marriages_for_member($member_id);
+                    $latest_marriage = !empty($marriages) ? end($marriages) : null;
+                    $current_status = 'unmarried';
+                    if ($latest_marriage) {
+                        $current_status = $latest_marriage->marriage_status ?? 'married';
+                    }
+                    ?>
+                    <label class="form-label" for="marital_status">Marital Status</label>
+                    <select id="marital_status" name="marital_status">
+                        <option value="unmarried" <?php echo ($current_status === 'unmarried') ? 'selected' : ''; ?>>Unmarried</option>
+                        <option value="married" <?php echo ($current_status === 'married') ? 'selected' : ''; ?>>Married</option>
+                        <option value="divorced" <?php echo ($current_status === 'divorced') ? 'selected' : ''; ?>>Divorced</option>
+                        <option value="widowed" <?php echo ($current_status === 'widowed') ? 'selected' : ''; ?>>Widowed</option>
+                    </select>
+                    <small class="form-help">Current marital status</small>
                 </div>
+            </div>
+        </div>
+
+        <!-- Marriage Details Section (conditional) -->
+        <div class="section" id="marriage_details_section" style="display: <?php echo ($current_status !== 'unmarried') ? 'block' : 'none'; ?>;">
+            <h2 class="section-title">💍 Marriage Details</h2>
+            <p class="section-description">Provide details about the marriage</p>
+
+            <?php if ($latest_marriage): ?>
+                <input type="hidden" id="existing_marriage_id" value="<?php echo intval($latest_marriage->id); ?>">
+            <?php endif; ?>
+
+            <div class="form-row form-row-2">
+                <div class="form-group">
+                    <label class="form-label" for="spouse_name">Spouse Name</label>
+                    <input type="text" id="spouse_name" name="spouse_name"
+                           value="<?php
+                           if ($latest_marriage) {
+                               // Determine spouse name based on current member
+                               if ($latest_marriage->husband_id == $member_id) {
+                                   // Show wife
+                                   if ($latest_marriage->wife_id) {
+                                       $wife_middle = !empty($latest_marriage->wife_middle_name) ? $latest_marriage->wife_middle_name . ' ' : '';
+                                       echo esc_attr($latest_marriage->wife_first_name . ' ' . $wife_middle . $latest_marriage->wife_last_name);
+                                   } else {
+                                       echo esc_attr($latest_marriage->wife_name ?? '');
+                                   }
+                               } else {
+                                   // Show husband
+                                   if ($latest_marriage->husband_id) {
+                                       $husband_middle = !empty($latest_marriage->husband_middle_name) ? $latest_marriage->husband_middle_name . ' ' : '';
+                                       echo esc_attr($latest_marriage->husband_first_name . ' ' . $husband_middle . $latest_marriage->husband_last_name);
+                                   } else {
+                                       echo esc_attr($latest_marriage->husband_name ?? '');
+                                   }
+                               }
+                           }
+                           ?>" placeholder="Full name of spouse">
+                    <small class="form-help">Enter spouse's full name</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="marriage_date">Marriage Date</label>
+                    <input type="date" id="marriage_date" name="marriage_date"
+                           value="<?php echo $latest_marriage ? esc_attr($latest_marriage->marriage_date ?? '') : ''; ?>">
+                </div>
+            </div>
+
+            <div class="form-row form-row-2">
+                <div class="form-group">
+                    <label class="form-label" for="marriage_location">Marriage Location</label>
+                    <input type="text" id="marriage_location" name="marriage_location"
+                           value="<?php echo $latest_marriage ? esc_attr($latest_marriage->marriage_location ?? '') : ''; ?>"
+                           placeholder="City, Country">
+                </div>
+
+                <div class="form-group" id="divorce_date_group" style="display: <?php echo ($current_status === 'divorced') ? 'block' : 'none'; ?>;">
+                    <label class="form-label" for="divorce_date">Divorce Date</label>
+                    <input type="date" id="divorce_date" name="divorce_date"
+                           value="<?php echo $latest_marriage ? esc_attr($latest_marriage->divorce_date ?? '') : ''; ?>">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="marriage_notes">Notes</label>
+                <textarea id="marriage_notes" name="marriage_notes" placeholder="Additional details about the marriage..." rows="3"><?php echo $latest_marriage ? esc_textarea($latest_marriage->notes ?? '') : ''; ?></textarea>
             </div>
         </div>
 
@@ -378,6 +459,26 @@ jQuery(function($) {
     } else {
         $('#parent2_name').hide();
     }
+
+    // Handle marital status change
+    $('#marital_status').on('change', function() {
+        var status = $(this).val();
+        if (status === 'married' || status === 'divorced' || status === 'widowed') {
+            $('#marriage_details_section').slideDown();
+            // Show divorce date only for divorced status
+            if (status === 'divorced') {
+                $('#divorce_date_group').show();
+            } else {
+                $('#divorce_date_group').hide();
+                $('#divorce_date').val('');
+            }
+        } else {
+            $('#marriage_details_section').slideUp();
+            // Clear marriage fields when hiding
+            $('#spouse_name, #marriage_date, #marriage_location, #divorce_date, #marriage_notes').val('');
+            $('#existing_marriage_id').val('');
+        }
+    });
 
     // Load clan details when clan selected
     function loadClanDetails(clanId, preSelectedLocationId, preSelectedSurnameId) {

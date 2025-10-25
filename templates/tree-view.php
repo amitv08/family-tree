@@ -26,8 +26,14 @@ $breadcrumbs = [
 ];
 $page_title = 'Family Tree Visualization';
 $page_actions = '
+    <button id="zoomIn" class="btn btn-outline btn-sm" title="Zoom in">
+        🔍 +
+    </button>
+    <button id="zoomOut" class="btn btn-outline btn-sm" title="Zoom out">
+        🔍 −
+    </button>
     <button id="resetView" class="btn btn-outline btn-sm" title="Reset zoom and pan">
-        🔄 Reset View
+        🔄 Reset
     </button>
     <a href="/family-dashboard" class="btn btn-outline btn-sm">
         ← Back
@@ -188,11 +194,12 @@ ob_start();
 ">
     <strong>💡 How to use the tree:</strong>
     <ul style="margin: var(--spacing-md) 0 0 var(--spacing-lg); padding-left: var(--spacing-lg);">
-        <li>Use <strong>mouse wheel</strong> to zoom in/out</li>
-        <li><strong>Drag</strong> to pan around</li>
-        <li><strong>Click on nodes</strong> to see member details</li>
+        <li>Use <strong>🔍 +/−</strong> buttons to zoom in/out</li>
+        <li>Use <strong>mouse wheel</strong> to zoom smoothly</li>
+        <li><strong>Drag</strong> to pan around the tree</li>
+        <li><strong>Hover on nodes</strong> to see member details</li>
         <li>Use the <strong>Filter</strong> dropdown to show specific clans</li>
-        <li>Click <strong>Reset View</strong> to return to default zoom</li>
+        <li>Click <strong>🔄 Reset</strong> to return to default view</li>
     </ul>
 </div>
 
@@ -259,16 +266,30 @@ ob_start();
 
         // Zoom & Pan setup
         const zoom = d3.zoom()
-            .scaleExtent([0.5, 3])
+            .scaleExtent([0.1, 3])  // Allow more zoom out and zoom in
             .on("zoom", e => g.attr("transform", e.transform));
-        
+
         svg.call(zoom);
+
+        // Zoom In button
+        document.getElementById('zoomIn')?.addEventListener('click', () => {
+            svg.transition()
+                .duration(300)
+                .call(zoom.scaleBy, 1.3);
+        });
+
+        // Zoom Out button
+        document.getElementById('zoomOut')?.addEventListener('click', () => {
+            svg.transition()
+                .duration(300)
+                .call(zoom.scaleBy, 0.7);
+        });
 
         // Reset view button
         document.getElementById('resetView')?.addEventListener('click', () => {
             svg.transition()
                 .duration(750)
-                .call(zoom.transform, d3.zoomIdentity.translate(50, 0));
+                .call(zoom.transform, d3.zoomIdentity.translate(width / 4, 50).scale(1));
         });
 
         // Toggle info panel

@@ -50,7 +50,7 @@ class MarriageController extends BaseController {
         $result = $this->repository->add($data);
 
         if ($result) {
-            $this->success('Marriage added successfully', ['marriage_id' => $result]);
+            $this->success(['message' => 'Marriage added successfully', 'marriage_id' => $result]);
         } else {
             $this->error('Failed to add marriage');
         }
@@ -69,7 +69,7 @@ class MarriageController extends BaseController {
         $ok = $this->repository->update($id, $data);
 
         if ($ok) {
-            $this->success('Marriage updated successfully');
+            $this->success(['message' => 'Marriage updated successfully']);
         } else {
             $this->error('Failed to update marriage');
         }
@@ -94,7 +94,7 @@ class MarriageController extends BaseController {
         $ok = $this->repository->delete($marriage_id);
 
         if ($ok) {
-            $this->success('Marriage deleted successfully');
+            $this->success(['message' => 'Marriage deleted successfully']);
         } else {
             $this->error('Failed to delete marriage');
         }
@@ -111,7 +111,7 @@ class MarriageController extends BaseController {
         $marriage = $this->repository->get_marriage_with_details($marriage_id);
 
         if ($marriage) {
-            $this->success('Marriage found', ['marriage' => $marriage]);
+            $this->success(['marriage' => $marriage]);
         } else {
             $this->error('Marriage not found');
         }
@@ -132,7 +132,7 @@ class MarriageController extends BaseController {
             $marriage->children = $this->repository->get_children_for_marriage($marriage->id);
         }
 
-        $this->success('Marriages retrieved', ['marriages' => $marriages]);
+        $this->success(['marriages' => $marriages]);
     }
 
     /**
@@ -145,6 +145,6 @@ class MarriageController extends BaseController {
         $marriage_id = $this->get_post_int('marriage_id');
         $children = $this->repository->get_children_for_marriage($marriage_id);
 
-        $this->success('Children retrieved', ['children' => $children]);
+        $this->success(['children' => $children]);
     }
 }

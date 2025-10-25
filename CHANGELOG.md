@@ -7,6 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.1.0] - 2025-10-25
+
+### Added - Marriage Form Integration & Tree Zoom
+
+**Feature Enhancements**: Integrated marriage management directly into member forms and added zoom controls to family tree view.
+
+#### Marriage Form Integration
+
+- **Add Member Form** (`templates/members/add-member.php`)
+  - Replaced standalone `marriage_date` field with `marital_status` dropdown
+  - Options: Unmarried, Married, Divorced, Widowed
+  - Conditional "Marriage Details" section that shows/hides based on status
+  - Fields: Spouse Name, Marriage Date, Marriage Location, Divorce Date (conditional), Notes
+  - Smooth slide animations for better UX
+
+- **Edit Member Form** (`templates/members/edit-member.php`)
+  - Same marital status dropdown as add form
+  - Auto-loads existing marriage data when editing
+  - Pre-populates spouse name, dates, location, and notes from latest marriage
+  - Hidden field tracks existing marriage ID for updates
+
+- **MemberController Enhancement** (`includes/Controllers/MemberController.php`)
+  - Added `handle_marriage_save()` private method
+  - Automatically saves/updates marriage when member is added/edited
+  - Smart gender-based assignment (male → husband_id, female → wife_id)
+  - Handles divorce dates based on marital status
+  - Updates existing marriage or creates new one as needed
+  - Integrated into both `add()` and `update()` methods
+
+- **JavaScript Logic**
+  - Dynamic show/hide of marriage details section
+  - Divorce date field only visible when status is "Divorced"
+  - Auto-clear fields when switching to "Unmarried"
+  - Form validation for required fields
+
+#### Family Tree Zoom Controls
+
+- **Zoom UI Controls** (`templates/tree-view.php`)
+  - Zoom In button (+)
+  - Zoom Out button (-)
+  - Reset View button
+  - Professional styling with hover effects
+  - Positioned in top-right corner of tree view
+
+- **D3.js Zoom & Pan** (`assets/js/tree.js`)
+  - Implemented `d3.zoom()` behavior
+  - Mouse wheel zoom support
+  - Click-and-drag pan functionality
+  - Programmatic zoom via buttons (0.2x increment)
+  - Reset to initial view (scale 1, centered)
+  - Smooth transitions for all zoom operations
+  - Zoom extent limits (0.1x to 3x scale)
+
+### Changed
+
+- **Member Forms**: Marriage date moved from Life Events to conditional Marriage Details section
+- **Marital Status**: Now required field in add/edit member forms
+- **Marriage Workflow**: Simplified - no need to visit view-member page to add marriage
+- **BaseController**: Fixed `success()` method signature issue in MarriageController
+- **Dashboard**: Fixed gender count display (case-insensitive matching)
+
+### Fixed
+
+- **Marriage AJAX Responses**: Corrected all `success()` calls to use single-parameter format
+- **Marriage Edit**: Fixed edit functionality by adding `get_marriage_with_details()` method
+- **Gender Counts**: Dashboard now properly counts male/female members (case-insensitive)
+- **Marriage Modal**: Replaced sequential prompts with professional modal form
+
+### Technical Notes
+
+- Marriage save/update now happens seamlessly during member save
+- Works for both male and female members automatically
+- Tree zoom state persists during session until reset
+- All changes maintain backward compatibility
+
+---
+
 ## [3.0.0] - 2025-10-25
 
 ### Added - Phase 2: Multiple Marriages Support 🎉
