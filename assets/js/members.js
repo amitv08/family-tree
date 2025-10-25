@@ -34,7 +34,11 @@ jQuery(document).ready(function($){
     // Restore
     $(document).on('click', '.btn-restore-member', function(e){
         e.preventDefault();
-        
+
+        if (!confirm('Are you sure you want to restore this member? They will reappear in all lists and the family tree.')) {
+            return;
+        }
+
         var id = $(this).data('id');
         var btn = $(this);
         

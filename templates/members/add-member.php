@@ -390,6 +390,192 @@ jQuery(function($) {
     // Initialize: hide Select2 widget since text input is default
     $('#parent2_id').next('.select2-container').hide();
 
+    // Smart Mother Selection - Populate based on Father's marriages
+    var fatherChangeInProgress = false; // Prevent circular triggers
+
+    $('#parent1_id').on('change', function() {
+        if (fatherChangeInProgress) return;
+        var fatherId = $(this).val();
+
+        if (!fatherId) {
+            // No father selected, reset to default behavior
+            return;
+        }
+
+        // Fetch father's marriages
+        $.post(family_tree.ajax_url, {
+            action: 'get_marriages_for_member',
+            nonce: family_tree.nonce,
+            member_id: fatherId
+        }, function(res) {
+            if (res.success && res.data.marriages && res.data.marriages.length > 0) {
+                var marriages = res.data.marriages;
+
+                if (marriages.length === 1) {
+                    // Single marriage - auto-populate mother
+                    var marriage = marriages[0];
+
+                    if (marriage.wife_id) {
+                        // Wife exists as member - select from dropdown
+                        $('input[name="mother_input_type"][value="select"]').prop('checked', true).trigger('change');
+                        $('#parent2_id').val(marriage.wife_id).trigger('change');
+                        showToast('Mother auto-selected from father\'s marriage', 'success');
+                    } else if (marriage.wife_name) {
+                        // Wife is text-only - populate text field
+                        $('input[name="mother_input_type"][value="text"]').prop('checked', true).trigger('change');
+                        $('#parent2_name').val(marriage.wife_name);
+                        showToast('Mother name auto-filled from father\'s marriage', 'success');
+                    }
+                } else {
+                    // Multiple marriages - populate dropdown with wives only
+                    populateMotherFromMarriages(marriages);
+                    showToast('Please select mother from father\'s ' + marriages.length + ' marriages', 'info');
+                }
+            }
+            // If no marriages found, do nothing (user enters manually)
+        }).fail(function() {
+            console.log('Failed to fetch marriages for father');
+        });
+    });
+
+    // Populate mother dropdown with wives from marriages
+    function populateMotherFromMarriages(marriages) {
+        // Switch to dropdown mode
+        $('input[name="mother_input_type"][value="select"]').prop('checked', true).trigger('change');
+
+        // Build options from marriages
+        var options = '<option value="">-- Select Mother from Marriages --</option>';
+        var hasTextOnlyWives = false;
+
+        marriages.forEach(function(marriage, index) {
+            if (marriage.wife_id) {
+                // Wife exists as member in system
+                var wifeName = marriage.wife_first_name + ' ' +
+                              (marriage.wife_middle_name ? marriage.wife_middle_name + ' ' : '') +
+                              marriage.wife_last_name;
+                var status = marriage.marriage_status ? ' (' + marriage.marriage_status + ')' : '';
+                options += '<option value="' + marriage.wife_id + '">' + wifeName + status + '</option>';
+            } else if (marriage.wife_name) {
+                // Wife is text-only (not in system)
+                hasTextOnlyWives = true;
+                options += '<option value="" data-text-name="' + escapeHtml(marriage.wife_name) + '">' +
+                          escapeHtml(marriage.wife_name) + ' (not in system)</option>';
+            }
+        });
+
+        // Add option to enter manually
+        options += '<option value="">-- Enter Different Mother --</option>';
+
+        // Update dropdown
+        var $parent2 = $('#parent2_id');
+        $parent2.html(options);
+
+        // Reinitialize Select2
+        if ($parent2.hasClass('select2-hidden-accessible')) {
+            $parent2.select2('destroy');
+        }
+        $parent2.select2({
+            placeholder: '--- Select mother from marriages ---',
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Handle selection of text-only wives
+        $parent2.on('select2:select', function(e) {
+            var selectedOption = $(e.params.data.element);
+            var textName = selectedOption.data('text-name');
+
+            if (textName) {
+                // Switch to text input and populate
+                $('input[name="mother_input_type"][value="text"]').prop('checked', true).trigger('change');
+                $('#parent2_name').val(textName);
+            }
+        });
+    }
+
+    // Smart Father Selection - Populate based on Mother's marriages (REVERSE)
+    var motherChangeInProgress = false; // Prevent circular triggers
+
+    $('#parent2_id').on('change', function() {
+        if (motherChangeInProgress) return;
+        var motherId = $(this).val();
+
+        if (!motherId) {
+            // No mother selected, reset to default behavior
+            return;
+        }
+
+        // Skip if father already selected (user knows what they're doing)
+        if ($('#parent1_id').val()) {
+            return;
+        }
+
+        // Fetch mother's marriages
+        $.post(family_tree.ajax_url, {
+            action: 'get_marriages_for_member',
+            nonce: family_tree.nonce,
+            member_id: motherId
+        }, function(res) {
+            if (res.success && res.data.marriages && res.data.marriages.length > 0) {
+                var marriages = res.data.marriages;
+
+                if (marriages.length === 1) {
+                    // Single marriage - auto-populate father
+                    var marriage = marriages[0];
+
+                    if (marriage.husband_id) {
+                        // Husband exists as member - select from dropdown
+                        fatherChangeInProgress = true; // Prevent triggering mother logic
+                        $('#parent1_id').val(marriage.husband_id).trigger('change');
+                        fatherChangeInProgress = false;
+                        showToast('Father auto-selected from mother\'s marriage', 'success');
+                    }
+                } else {
+                    // Multiple marriages - show dropdown with husbands only
+                    populateFatherFromMarriages(marriages);
+                    showToast('Please select father from mother\'s ' + marriages.length + ' marriages', 'info');
+                }
+            }
+            // If no marriages found, do nothing (single mother, adoption, etc.)
+        }).fail(function() {
+            console.log('Failed to fetch marriages for mother');
+        });
+    });
+
+    // Populate father dropdown with husbands from marriages
+    function populateFatherFromMarriages(marriages) {
+        var options = '<option value="">-- Select Father from Marriages --</option>';
+
+        marriages.forEach(function(marriage) {
+            if (marriage.husband_id) {
+                // Husband exists as member in system
+                var husbandName = marriage.husband_first_name + ' ' +
+                                 (marriage.husband_middle_name ? marriage.husband_middle_name + ' ' : '') +
+                                 marriage.husband_last_name;
+                var status = marriage.marriage_status ? ' (' + marriage.marriage_status + ')' : '';
+                options += '<option value="' + marriage.husband_id + '">' + husbandName + status + '</option>';
+            }
+        });
+
+        // Add option to leave empty (single mother, adoption)
+        options += '<option value="">-- No Father / Single Mother --</option>';
+
+        // Update dropdown
+        var $parent1 = $('#parent1_id');
+        var currentVal = $parent1.val(); // Preserve current selection
+        $parent1.html(options);
+
+        // Reinitialize Select2
+        if ($parent1.hasClass('select2-hidden-accessible')) {
+            $parent1.select2('destroy');
+        }
+        $parent1.select2({
+            placeholder: '--- Select father from marriages ---',
+            allowClear: true,
+            width: '100%'
+        });
+    }
+
     // Handle marital status change
     $('#marital_status').on('change', function() {
         var status = $(this).val();

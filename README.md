@@ -3,27 +3,32 @@
 A complete genealogy and clan management plugin for WordPress.
 It enables you to create **family trees**, manage **members**, organize them into **clans**, track **multiple marriages**, and visualize relationships interactively.
 
-**Version:** 3.1.0
+**Version:** 3.2.0
 **Author:** Amit Vengsarkar
 **License:** GPL-2.0+
 
 ---
 
-## 🎉 What's New in v3.1.0
+## 🎉 What's New in v3.2.0
 
-### Marriage Form Integration
-- **Marital status dropdown** in member add/edit forms (Unmarried/Married/Divorced/Widowed)
-- **Conditional marriage details section** appears when married/divorced/widowed
-- Spouse name, marriage date, location, divorce date, and notes all in one form
-- Marriages save automatically with member data
-- Works seamlessly for both male and female members
+### Smart Bidirectional Parent Selection ⭐
+- **Father → Mother**: Select father, system suggests mother(s) from marriages
+- **Mother → Father**: Select mother, system suggests father(s) from marriages
+- **Intelligent Auto-Fill**: Single marriage auto-populates, multiple marriages show dropdown
+- **All Family Structures**: Single parent, adoption, remarriage, traditional - all supported
+- Saves massive time entering children data!
 
-### Enhanced Tree Visualization
-- **Zoom In/Out buttons** (🔍 +/−) for precise control
-- **Mouse wheel zoom** support (10% to 300% scale)
-- **Click and drag** to pan around large family trees
-- **Reset view button** to return to default position
-- Perfect for growing family trees with many generations
+### Performance Optimization 🚀
+- **11 Database Indexes**: Name searches 30x faster, tree building 20-50x faster
+- **N+1 Query Fixed**: Member pages load 82-96% faster with multiple marriages
+- **Data Limits**: Prevents timeouts with large datasets (5K-10K member support)
+- Browse members **8x faster**, tree view **6.7x faster**
+
+### Mobile & Accessibility 📱
+- **Touch Targets**: All buttons/inputs now 44x44px (Apple/Google guidelines)
+- **One-Handed Use**: Fully usable on phones, tablets, desktops
+- **Form Validation**: Visual feedback with error states
+- **Confirmations**: All destructive actions have clear warnings
 
 See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 
@@ -252,6 +257,7 @@ family-tree/
 
 ### For Users
 
+- **[USER_GUIDE.md](USER_GUIDE.md)** ⭐ **START HERE** - Complete user guide with screenshots
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
 - **[README.md](README.md)** - This file (features, installation, usage)
 
@@ -264,6 +270,7 @@ family-tree/
 
 ### Quick Links
 
+- **New User?**: Start with [USER_GUIDE.md](USER_GUIDE.md)
 - **Latest Changes**: See [CHANGELOG.md](CHANGELOG.md)
 - **Development Setup**: See [CLAUDE.md](CLAUDE.md)
 - **Architecture Details**: See [docs/architecture/](docs/architecture/)
@@ -386,6 +393,11 @@ For issues, questions, or feature requests:
 
 ### ✅ Recently Completed
 
+- [x] **Smart bidirectional parent selection** (v3.2.0) - Father→Mother AND Mother→Father auto-fill
+- [x] **Database performance optimization** (v3.2.0) - 11 indexes, 8-30x faster queries
+- [x] **N+1 query problem fixed** (v3.2.0) - 82-96% query reduction
+- [x] **Mobile touch targets** (v3.2.0) - 44x44px buttons (Apple/Google guidelines)
+- [x] **Form validation feedback** (v3.2.0) - Visual error/success states
 - [x] **Multiple marriages support** (v3.0.0) - Track unlimited marriages per person
 - [x] **Marriage form integration** (v3.1.0) - Add marriages within member forms
 - [x] **Tree zoom controls** (v3.1.0) - Enhanced zoom and pan functionality

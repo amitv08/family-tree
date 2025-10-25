@@ -157,12 +157,38 @@
   }
 
   .btn {
+    /* Minimum 44x44px touch target (Apple/Google guidelines) */
+    min-height: 44px;
     padding: var(--spacing-md) var(--spacing-lg);
     font-size: var(--font-size-xs);
   }
 
   .btn-lg {
+    min-height: 48px;
     padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .btn-sm {
+    min-height: 40px; /* Slightly smaller but still accessible */
+  }
+
+  /* Increase spacing between buttons for easier tapping */
+  .btn-group {
+    gap: var(--spacing-lg);
+  }
+
+  /* Make form inputs touch-friendly */
+  input,
+  textarea,
+  select,
+  .select2-container .select2-selection {
+    min-height: 44px !important;
+  }
+
+  /* Icon buttons need proper sizing */
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .form-label {
@@ -203,6 +229,24 @@
   .table {
     display: block;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  }
+
+  /* Prevent double-tap zoom on buttons */
+  .btn, a, button, input[type="submit"] {
+    touch-action: manipulation;
+  }
+
+  /* Increase tap area for links in tables */
+  .table a {
+    display: inline-block;
+    min-height: 44px;
+    line-height: 44px;
+  }
+
+  /* Make dropdowns easier to use on touch */
+  select, .select2-container {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
   }
 }
 

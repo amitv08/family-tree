@@ -149,6 +149,47 @@ class MarriageRepository extends BaseRepository {
     }
 
     /**
+     * Get all children for multiple marriages in one query (avoids N+1 problem)
+     *
+     * @param array $marriage_ids Array of marriage IDs
+     * @return array Associative array keyed by marriage_id
+     */
+    public function get_children_for_marriages(array $marriage_ids): array {
+        if (empty($marriage_ids)) {
+            return [];
+        }
+
+        $members_table = Config::get_table_name(Config::TABLE_MEMBERS);
+
+        // Create placeholders for IN clause
+        $placeholders = implode(',', array_fill(0, count($marriage_ids), '%d'));
+
+        $sql = "
+            SELECT id, first_name, middle_name, last_name, birth_date, gender, parent_marriage_id
+            FROM {$members_table}
+            WHERE parent_marriage_id IN ($placeholders)
+            AND COALESCE(is_deleted, 0) = 0
+            ORDER BY parent_marriage_id, birth_date ASC
+        ";
+
+        $results = $this->wpdb->get_results(
+            $this->wpdb->prepare($sql, ...$marriage_ids)
+        );
+
+        // Group children by marriage_id
+        $grouped = [];
+        foreach ($results as $child) {
+            $marriage_id = $child->parent_marriage_id;
+            if (!isset($grouped[$marriage_id])) {
+                $grouped[$marriage_id] = [];
+            }
+            $grouped[$marriage_id][] = $child;
+        }
+
+        return $grouped;
+    }
+
+    /**
      * Get a single marriage with spouse details
      *
      * @param int $id Marriage ID

@@ -254,6 +254,75 @@ class FamilyTreeDatabase {
         } catch (Exception $e) {
             error_log('apply_schema_updates: FK creation error: ' . $e->getMessage());
         }
+
+        // Add performance indexes for frequently queried columns
+        self::add_performance_indexes();
+    }
+
+    /**
+     * Add database indexes for performance optimization
+     */
+    private static function add_performance_indexes() {
+        global $wpdb;
+
+        $check_index = function($table, $index_name) use ($wpdb) {
+            $result = $wpdb->get_results($wpdb->prepare("SHOW INDEX FROM {$table} WHERE Key_name = %s", $index_name));
+            return !empty($result);
+        };
+
+        try {
+            $members_table = $wpdb->prefix . 'family_members';
+            $marriages_table = $wpdb->prefix . 'family_marriages';
+            $locations_table = $wpdb->prefix . 'clan_locations';
+            $surnames_table = $wpdb->prefix . 'clan_surnames';
+
+            // Members table indexes for searching and filtering
+            if (!$check_index($members_table, 'idx_name_search')) {
+                $wpdb->query("CREATE INDEX idx_name_search ON {$members_table} (last_name, first_name)");
+            }
+
+            if (!$check_index($members_table, 'idx_is_deleted')) {
+                $wpdb->query("CREATE INDEX idx_is_deleted ON {$members_table} (is_deleted)");
+            }
+
+            if (!$check_index($members_table, 'idx_birth_date')) {
+                $wpdb->query("CREATE INDEX idx_birth_date ON {$members_table} (birth_date)");
+            }
+
+            if (!$check_index($members_table, 'idx_gender')) {
+                $wpdb->query("CREATE INDEX idx_gender ON {$members_table} (gender)");
+            }
+
+            // Marriages table indexes for lookups
+            if (!$check_index($marriages_table, 'idx_marriage_husband')) {
+                $wpdb->query("CREATE INDEX idx_marriage_husband ON {$marriages_table} (husband_id)");
+            }
+
+            if (!$check_index($marriages_table, 'idx_marriage_wife')) {
+                $wpdb->query("CREATE INDEX idx_marriage_wife ON {$marriages_table} (wife_id)");
+            }
+
+            if (!$check_index($marriages_table, 'idx_marriage_date')) {
+                $wpdb->query("CREATE INDEX idx_marriage_date ON {$marriages_table} (marriage_date)");
+            }
+
+            // Clan reference indexes
+            if (!$check_index($locations_table, 'idx_clan_id')) {
+                $wpdb->query("CREATE INDEX idx_clan_id ON {$locations_table} (clan_id)");
+            }
+
+            if (!$check_index($surnames_table, 'idx_clan_id')) {
+                $wpdb->query("CREATE INDEX idx_clan_id ON {$surnames_table} (clan_id)");
+            }
+
+            // Composite index for parent queries (tree building)
+            if (!$check_index($members_table, 'idx_parents')) {
+                $wpdb->query("CREATE INDEX idx_parents ON {$members_table} (parent1_id, parent2_id)");
+            }
+
+        } catch (Exception $e) {
+            error_log('add_performance_indexes: Error adding indexes: ' . $e->getMessage());
+        }
     }
 
         /**
@@ -285,12 +354,17 @@ class FamilyTreeDatabase {
         $members_table = $wpdb->prefix . 'family_members';
         $clans_table   = $wpdb->prefix . 'family_clans';
 
+        // Security: Add reasonable limit for tree rendering (can be adjusted)
+        $max_tree_nodes = 10000;
+
         $sql = "
-            SELECT 
+            SELECT
                 m.id,
                 m.first_name,
                 m.last_name,
                 m.gender,
+                m.birth_date,
+                m.death_date,
                 m.parent1_id,
                 m.parent2_id,
                 m.clan_id,
@@ -299,6 +373,7 @@ class FamilyTreeDatabase {
             LEFT JOIN $clans_table c ON m.clan_id = c.id
             WHERE COALESCE(m.is_deleted,0)=0
             ORDER BY m.last_name, m.first_name
+            LIMIT {$max_tree_nodes}
         ";
         return $wpdb->get_results($sql) ?: [];
     }
@@ -538,6 +613,13 @@ public static function validate_member_data($data, $member_id = null) {
     public static function get_members($limit = 1000, $offset = 0, $include_deleted = false) {
         global $wpdb;
         $table = $wpdb->prefix . 'family_members';
+
+        // Security: Enforce maximum limit to prevent resource exhaustion
+        $max_limit = 5000;
+        if ($limit > $max_limit) {
+            $limit = $max_limit;
+        }
+
         if ($include_deleted) {
             return $wpdb->get_results($wpdb->prepare("SELECT * FROM $table ORDER BY last_name ASC LIMIT %d OFFSET %d", $limit, $offset));
         } else {
@@ -696,6 +778,50 @@ public static function validate_member_data($data, $member_id = null) {
         ";
 
         return $wpdb->get_results($wpdb->prepare($sql, intval($marriage_id)));
+    }
+
+    /**
+     * Get children for multiple marriages in one query (Performance optimization)
+     * Avoids N+1 query problem when displaying multiple marriages
+     *
+     * @param array $marriage_ids Array of marriage IDs
+     * @return array Associative array keyed by marriage_id
+     */
+    public static function get_children_for_marriages_batch($marriage_ids) {
+        if (empty($marriage_ids)) {
+            return [];
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'family_members';
+
+        // Sanitize and prepare placeholders
+        $marriage_ids = array_map('intval', $marriage_ids);
+        $placeholders = implode(',', array_fill(0, count($marriage_ids), '%d'));
+
+        $sql = "
+            SELECT id, first_name, middle_name, last_name, birth_date, gender, parent_marriage_id
+            FROM $table
+            WHERE parent_marriage_id IN ($placeholders)
+            AND COALESCE(is_deleted, 0) = 0
+            ORDER BY parent_marriage_id, birth_date ASC
+        ";
+
+        $results = $wpdb->get_results($wpdb->prepare($sql, ...$marriage_ids));
+
+        // Group children by marriage_id for easy lookup
+        $grouped = [];
+        if ($results) {
+            foreach ($results as $child) {
+                $marriage_id = $child->parent_marriage_id;
+                if (!isset($grouped[$marriage_id])) {
+                    $grouped[$marriage_id] = [];
+                }
+                $grouped[$marriage_id][] = $child;
+            }
+        }
+
+        return $grouped;
     }
 
     /**

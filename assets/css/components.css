@@ -370,3 +370,38 @@
   font-size: var(--font-size-sm);
   margin: 0;
 }
+/* ===== FORM VALIDATION ===== */
+
+.form-error {
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-xs);
+  display: block;
+}
+
+.form-group.has-error input,
+.form-group.has-error select,
+.form-group.has-error textarea {
+  border-color: var(--color-error);
+  background: rgba(220, 38, 38, 0.05);
+}
+
+.form-group.has-success input,
+.form-group.has-success select,
+.form-group.has-success textarea {
+  border-color: var(--color-success);
+}
+
+/* Accessibility: Focus states */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Required field indicator */
+.form-label.required::after {
+  content: ' *';
+  color: var(--color-error);
+}

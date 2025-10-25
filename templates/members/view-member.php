@@ -219,6 +219,14 @@ ob_start();
         <!-- Marriages Section (Phase 2) -->
         <?php
         $marriages = FamilyTreeDatabase::get_marriages_for_member($member->id);
+
+        // Performance optimization: Fetch all children in one query instead of N+1
+        $all_children_by_marriage = [];
+        if (!empty($marriages)) {
+            $marriage_ids = array_map(function($m) { return $m->id; }, $marriages);
+            $all_children_by_marriage = FamilyTreeDatabase::get_children_for_marriages_batch($marriage_ids);
+        }
+
         if (!empty($marriages)):
         ?>
             <div id="marriages-section" class="card" style="margin-bottom: var(--spacing-xl);">
@@ -262,8 +270,8 @@ ob_start();
                             }
                         }
 
-                        // Get children for this marriage
-                        $children = FamilyTreeDatabase::get_children_for_marriage($marriage->id);
+                        // Get children for this marriage (from batched data - no extra query!)
+                        $children = isset($all_children_by_marriage[$marriage->id]) ? $all_children_by_marriage[$marriage->id] : [];
 
                         // Format dates
                         $marriage_date_display = $marriage->marriage_date ? date('M j, Y', strtotime($marriage->marriage_date)) : 'Date unknown';

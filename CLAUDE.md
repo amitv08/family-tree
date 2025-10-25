@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Family Tree WordPress Plugin** - a complete genealogy and clan management system for WordPress. The plugin enables creating family trees, managing members and clans, tracking multiple marriages, and visualizing relationships with an interactive D3.js tree view.
+This is a **Family Tree WordPress Plugin** - a complete genealogy and clan management system for WordPress. The plugin enables creating family trees, managing members and clans, tracking multiple marriages, smart parent selection, and visualizing relationships with an interactive D3.js tree view.
 
-**Current Version:** 3.1.0
+**Current Version:** 3.2.0
 **Author:** Amit Vengsarkar
 
-**Architecture:** Modern MVC with PSR-4 autoloading, namespaces, and separation of concerns
+**Architecture:** Modern MVC with PSR-4 autoloading, namespaces, separation of concerns, and performance-optimized database queries
 
 ## Development Environment
 
