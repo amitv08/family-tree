@@ -216,6 +216,206 @@ ob_start();
             </div>
         </div>
 
+        <!-- Marriages Section (Phase 2) -->
+        <?php
+        $marriages = FamilyTreeDatabase::get_marriages_for_member($member->id);
+        if (!empty($marriages)):
+        ?>
+            <div class="card" style="margin-bottom: var(--spacing-xl);">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">💍 Marriages</h3>
+                    <?php if (current_user_can('edit_family_members')): ?>
+                        <button class="btn btn-primary btn-sm btn-add-marriage" data-member-id="<?php echo intval($member->id); ?>">
+                            ➕ Add Marriage
+                        </button>
+                    <?php endif; ?>
+                </div>
+                <div class="card-body">
+                    <?php foreach ($marriages as $index => $marriage): ?>
+                        <?php
+                        // Determine spouse info
+                        $is_husband = ($marriage->husband_id == $member->id);
+                        $spouse_name = '';
+                        $spouse_id = null;
+
+                        if ($is_husband) {
+                            // Current member is husband, show wife
+                            if ($marriage->wife_id) {
+                                $spouse_first = $marriage->wife_first_name;
+                                $spouse_middle = !empty($marriage->wife_middle_name) ? $marriage->wife_middle_name . ' ' : '';
+                                $spouse_last = $marriage->wife_last_name;
+                                $spouse_name = $spouse_first . ' ' . $spouse_middle . $spouse_last;
+                                $spouse_id = $marriage->wife_id;
+                            } else {
+                                $spouse_name = $marriage->wife_name ?: 'Unknown';
+                            }
+                        } else {
+                            // Current member is wife, show husband
+                            if ($marriage->husband_id) {
+                                $spouse_first = $marriage->husband_first_name;
+                                $spouse_middle = !empty($marriage->husband_middle_name) ? $marriage->husband_middle_name . ' ' : '';
+                                $spouse_last = $marriage->husband_last_name;
+                                $spouse_name = $spouse_first . ' ' . $spouse_middle . $spouse_last;
+                                $spouse_id = $marriage->husband_id;
+                            } else {
+                                $spouse_name = $marriage->husband_name ?: 'Unknown';
+                            }
+                        }
+
+                        // Get children for this marriage
+                        $children = FamilyTreeDatabase::get_children_for_marriage($marriage->id);
+
+                        // Format dates
+                        $marriage_date_display = $marriage->marriage_date ? date('M j, Y', strtotime($marriage->marriage_date)) : 'Date unknown';
+                        $status_label = ucfirst($marriage->marriage_status);
+                        $status_class = $marriage->marriage_status === 'married' ? 'badge-success' : 'badge-warning';
+                        ?>
+
+                        <div style="padding: var(--spacing-lg); background: var(--color-background); border-radius: var(--radius-md); margin-bottom: var(--spacing-md); border-left: 4px solid var(--color-primary);">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-md);">
+                                <div>
+                                    <h4 style="margin: 0 0 var(--spacing-sm) 0; color: var(--color-text-primary);">
+                                        Marriage <?php echo $index + 1; ?>
+                                        <span class="badge <?php echo $status_class; ?>" style="margin-left: var(--spacing-sm);">
+                                            <?php echo esc_html($status_label); ?>
+                                        </span>
+                                    </h4>
+                                    <p style="margin: 0; color: var(--color-text-secondary);">
+                                        <strong>Spouse:</strong>
+                                        <?php if ($spouse_id): ?>
+                                            <a href="/view-member?id=<?php echo intval($spouse_id); ?>" style="color: var(--color-primary); text-decoration: underline;">
+                                                <?php echo esc_html($spouse_name); ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <?php echo esc_html($spouse_name); ?>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                                <?php if (current_user_can('edit_family_members')): ?>
+                                    <div class="btn-group">
+                                        <button class="btn btn-outline btn-sm btn-edit-marriage"
+                                                data-marriage-id="<?php echo intval($marriage->id); ?>"
+                                                title="Edit Marriage">
+                                            ✏️
+                                        </button>
+                                        <button class="btn btn-danger btn-sm btn-delete-marriage"
+                                                data-marriage-id="<?php echo intval($marriage->id); ?>"
+                                                title="Delete Marriage">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <dl style="margin: 0;">
+                                <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-xs); font-size: var(--font-size-sm);">
+                                    Marriage Date:
+                                </dt>
+                                <dd style="margin: 0 0 var(--spacing-sm) 0; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
+                                    <?php echo esc_html($marriage_date_display); ?>
+                                </dd>
+
+                                <?php if ($marriage->marriage_location): ?>
+                                    <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-xs); font-size: var(--font-size-sm);">
+                                        Location:
+                                    </dt>
+                                    <dd style="margin: 0 0 var(--spacing-sm) 0; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
+                                        <?php echo esc_html($marriage->marriage_location); ?>
+                                    </dd>
+                                <?php endif; ?>
+
+                                <?php if ($marriage->divorce_date): ?>
+                                    <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-xs); font-size: var(--font-size-sm);">
+                                        Divorce Date:
+                                    </dt>
+                                    <dd style="margin: 0 0 var(--spacing-sm) 0; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
+                                        <?php echo esc_html(date('M j, Y', strtotime($marriage->divorce_date))); ?>
+                                    </dd>
+                                <?php endif; ?>
+
+                                <?php if ($marriage->end_date && $marriage->marriage_status !== 'divorced'): ?>
+                                    <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-xs); font-size: var(--font-size-sm);">
+                                        End Date:
+                                    </dt>
+                                    <dd style="margin: 0 0 var(--spacing-sm) 0; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
+                                        <?php echo esc_html(date('M j, Y', strtotime($marriage->end_date))); ?>
+                                        <?php if ($marriage->end_reason): ?>
+                                            (<?php echo esc_html($marriage->end_reason); ?>)
+                                        <?php endif; ?>
+                                    </dd>
+                                <?php endif; ?>
+
+                                <?php if (!empty($children)): ?>
+                                    <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin: var(--spacing-md) 0 var(--spacing-sm) 0; font-size: var(--font-size-sm);">
+                                        Children (<?php echo count($children); ?>):
+                                    </dt>
+                                    <dd style="margin: 0;">
+                                        <ul style="list-style: none; padding: 0; margin: 0;">
+                                            <?php foreach ($children as $child): ?>
+                                                <?php
+                                                $child_full_name = $child->first_name;
+                                                if (!empty($child->middle_name)) {
+                                                    $child_full_name .= ' ' . $child->middle_name;
+                                                }
+                                                $child_full_name .= ' ' . $child->last_name;
+                                                ?>
+                                                <li style="padding: var(--spacing-xs) 0;">
+                                                    <a href="/view-member?id=<?php echo intval($child->id); ?>" style="color: var(--color-primary); text-decoration: underline;">
+                                                        <?php echo esc_html($child_full_name); ?>
+                                                    </a>
+                                                    <?php if ($child->birth_date): ?>
+                                                        <span style="color: var(--color-text-light); font-size: var(--font-size-sm);">
+                                                            (b. <?php echo esc_html(date('Y', strtotime($child->birth_date))); ?>)
+                                                        </span>
+                                                    <?php endif; ?>
+                                                    <?php if ($child->gender): ?>
+                                                        <span style="font-size: var(--font-size-sm);">
+                                                            <?php echo $child->gender === 'Male' ? '♂️' : ($child->gender === 'Female' ? '♀️' : '⚧️'); ?>
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </dd>
+                                <?php else: ?>
+                                    <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin: var(--spacing-md) 0 var(--spacing-sm) 0; font-size: var(--font-size-sm);">
+                                        Children:
+                                    </dt>
+                                    <dd style="margin: 0; color: var(--color-text-light); font-style: italic; font-size: var(--font-size-sm);">
+                                        No children recorded
+                                    </dd>
+                                <?php endif; ?>
+
+                                <?php if ($marriage->notes): ?>
+                                    <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin: var(--spacing-md) 0 var(--spacing-sm) 0; font-size: var(--font-size-sm);">
+                                        Notes:
+                                    </dt>
+                                    <dd style="margin: 0; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
+                                        <?php echo nl2br(esc_html($marriage->notes)); ?>
+                                    </dd>
+                                <?php endif; ?>
+                            </dl>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php elseif (current_user_can('edit_family_members')): ?>
+            <!-- No marriages yet, show add button -->
+            <div class="card" style="margin-bottom: var(--spacing-xl);">
+                <div class="card-header">
+                    <h3 style="margin: 0;">💍 Marriages</h3>
+                </div>
+                <div class="card-body" style="text-align: center; padding: var(--spacing-xl);">
+                    <p style="color: var(--color-text-light); margin-bottom: var(--spacing-lg);">
+                        No marriages recorded for this member.
+                    </p>
+                    <button class="btn btn-primary btn-add-marriage" data-member-id="<?php echo intval($member->id); ?>">
+                        ➕ Add Marriage
+                    </button>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- Biography -->
         <?php if (!empty($member->biography)): ?>
             <div class="card">
@@ -250,18 +450,9 @@ ob_start();
                     <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">
                         Death:
                     </dt>
-                    <dd style="margin: 0 0 var(--spacing-lg) 0; color: var(--color-text-secondary);">
+                    <dd style="margin: 0; color: var(--color-text-secondary);">
                         <?php echo $member->death_date ? esc_html(date('M j, Y', strtotime($member->death_date))) : '<em>Still living</em>'; ?>
                     </dd>
-
-                    <?php if ($member->marriage_date): ?>
-                        <dt style="font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">
-                            Marriage:
-                        </dt>
-                        <dd style="margin: 0; color: var(--color-text-secondary);">
-                            <?php echo esc_html(date('M j, Y', strtotime($member->marriage_date))); ?>
-                        </dd>
-                    <?php endif; ?>
                 </dl>
             </div>
         </div>

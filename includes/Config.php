@@ -14,7 +14,7 @@ class Config {
     /**
      * Plugin version
      */
-    public const VERSION = '2.6.0';
+    public const VERSION = '3.0.0';
 
     /**
      * Database table names (without prefix)

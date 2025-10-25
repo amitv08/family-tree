@@ -7,6 +7,199 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.0] - 2025-10-25
+
+### Added - Phase 2: Multiple Marriages Support 🎉
+
+**Major Feature Release**: Complete multiple marriages tracking with full relationship management.
+
+#### Database Schema
+
+- **New Table: `wp_family_marriages`**
+  - Track unlimited marriages per person (polygamy, remarriage support)
+  - Fields: `husband_id`, `wife_id`, `husband_name`, `wife_name`
+  - Marriage details: `marriage_date`, `marriage_location`, `marriage_order`
+  - Status tracking: `marriage_status` (married/divorced/widowed/annulled)
+  - End tracking: `divorce_date`, `end_date`, `end_reason`, `notes`
+  - Audit fields: `created_by`, `updated_by`, `created_at`, `updated_at`
+  - Foreign keys to `wp_family_members` for data integrity
+
+- **New Column: `parent_marriage_id` in `wp_family_members`**
+  - Links children to specific marriages
+  - Enables tracking half-siblings from different marriages
+  - Foreign key to `wp_family_marriages` table
+  - Nullable (allows children without marriage link)
+
+#### Backend Architecture (MVC)
+
+- **MarriageRepository** (`includes/Repositories/MarriageRepository.php`)
+  - `add()` - Create new marriage
+  - `update()` - Update marriage details
+  - `delete()` - Remove marriage
+  - `get_marriages_for_member()` - Get all marriages for a person
+  - `get_children_for_marriage()` - Get children from specific marriage
+  - `get_all_marriages()` - List all marriages with spouse details
+
+- **MarriageController** (`includes/Controllers/MarriageController.php`)
+  - `add()` - AJAX handler for adding marriages
+  - `update()` - AJAX handler for updating marriages
+  - `delete()` - AJAX handler for deleting marriages (prevents deletion if children exist)
+  - `get_details()` - Fetch single marriage details
+  - `get_marriages_for_member()` - Fetch all marriages for member
+  - `get_children_for_marriage()` - Fetch children for marriage
+
+- **Config Constants** (6 new AJAX actions)
+  - `AJAX_ADD_MARRIAGE`
+  - `AJAX_UPDATE_MARRIAGE`
+  - `AJAX_DELETE_MARRIAGE`
+  - `AJAX_GET_MARRIAGE_DETAILS`
+  - `AJAX_GET_MARRIAGES_FOR_MEMBER`
+  - `AJAX_GET_CHILDREN_FOR_MARRIAGE`
+
+#### Frontend
+
+- **Enhanced View Member Page** (`templates/members/view-member.php`)
+  - New "Marriages" section displaying all marriages
+  - Each marriage shows:
+    - Spouse name (clickable if in system)
+    - Marriage date and location
+    - Status badge (married/divorced/widowed)
+    - Divorce/end date if applicable
+    - Children grouped by marriage with birth years
+    - Notes if present
+  - Add/Edit/Delete buttons (permission-gated)
+  - Empty state with "Add Marriage" button
+
+- **JavaScript** (`assets/js/marriages.js`)
+  - Add marriage via prompts (temporary - can be enhanced to modal)
+  - Edit marriage with pre-filled data
+  - Delete marriage with confirmation
+  - Auto-determines husband/wife based on member gender
+  - Full AJAX integration with error handling
+
+#### Data Migration
+
+- **Automatic Migration**: `migrate_existing_marriages()`
+  - Converts old single `marriage_date` to marriages table
+  - Runs automatically on plugin activation
+  - One-time migration with safety checks
+  - Preserves all existing data
+  - Creates one marriage record per person with marriage_date set
+  - Determines husband/wife based on gender
+
+#### Legacy Support
+
+- **Backward Compatible Methods** in `FamilyTreeDatabase`:
+  - All existing methods remain functional
+  - New static methods for marriages CRUD
+  - Old `marriage_date` field kept for now (will be deprecated in future)
+
+### Changed
+
+- **View Member Page**: Removed single marriage date from "Life Events" section
+- **Marriage Display**: Now shows comprehensive marriage history instead of single date
+- **Plugin Version**: Bumped to 3.0.0 (major release)
+- **Nonce Security**: Added `AJAX_DELETE_MARRIAGE` to sensitive operations list
+
+### Technical Details
+
+#### Files Modified
+
+- `includes/database.php` - Added marriages table schema, CRUD methods, migration
+- `includes/Config.php` - Added 6 marriage AJAX action constants
+- `includes/Plugin.php` - Registered marriage controller and AJAX hooks
+- `includes/Repositories/MarriageRepository.php` - **NEW** Database operations layer
+- `includes/Controllers/MarriageController.php` - **NEW** AJAX request handlers
+- `assets/js/marriages.js` - **NEW** Frontend JavaScript
+- `templates/members/view-member.php` - Added marriages section, removed old marriage date
+- `family-tree.php` - Version bump to 3.0.0
+
+#### Database Changes
+
+```sql
+-- New marriages table
+CREATE TABLE wp_family_marriages (
+  id MEDIUMINT(9) PRIMARY KEY AUTO_INCREMENT,
+  husband_id MEDIUMINT(9) NULL,
+  husband_name VARCHAR(200) NULL,
+  wife_id MEDIUMINT(9) NULL,
+  wife_name VARCHAR(200) NULL,
+  marriage_date DATE NULL,
+  marriage_location VARCHAR(200) NULL,
+  marriage_order TINYINT DEFAULT 1,
+  marriage_status VARCHAR(20) DEFAULT 'married',
+  divorce_date DATE NULL,
+  end_date DATE NULL,
+  end_reason VARCHAR(100) NULL,
+  notes TEXT NULL,
+  created_by MEDIUMINT(9) NULL,
+  updated_by MEDIUMINT(9) NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (husband_id) REFERENCES wp_family_members(id),
+  FOREIGN KEY (wife_id) REFERENCES wp_family_members(id)
+);
+
+-- New column in members table
+ALTER TABLE wp_family_members
+ADD COLUMN parent_marriage_id MEDIUMINT(9) NULL,
+ADD CONSTRAINT fk_members_parent_marriage
+  FOREIGN KEY (parent_marriage_id) REFERENCES wp_family_marriages(id);
+```
+
+### Migration Instructions
+
+**⚠️ IMPORTANT: Backup database before upgrading to 3.0.0**
+
+1. **Backup**: Export database via phpMyAdmin or command line
+2. **Deactivate**: Go to WordPress Admin → Plugins → Deactivate "Family Tree"
+3. **Activate**: Click "Activate" on the Family Tree plugin
+4. **Verify**: Check `wp-content/debug.log` for migration success messages
+5. **Test**: Navigate to a member's view page and verify marriages display
+
+**What Happens During Migration:**
+- `wp_family_marriages` table is created
+- `parent_marriage_id` column added to `wp_family_members`
+- All existing `marriage_date` values converted to marriage records
+- Each person with a marriage_date gets one marriage record
+- Husband/wife determined by gender field
+- Original `marriage_date` field kept for backward compatibility (will be removed in future)
+
+### Known Limitations
+
+- **Add Marriage UI**: Currently uses browser prompts (temporary solution)
+  - Will be enhanced to modal form in future update
+  - All core functionality works correctly
+- **Old marriage_date Field**: Still exists in database for backward compatibility
+  - Will be deprecated and removed in v4.0.0
+  - Not displayed in UI anymore
+
+### Upgrade Notes
+
+**From 2.6.0 to 3.0.0:**
+- No breaking changes for end users
+- All existing data preserved
+- Marriage information enhanced, not lost
+- UI automatically shows new marriages section
+
+**For Developers:**
+- New MVC classes available: `MarriageRepository`, `MarriageController`
+- New database methods in `FamilyTreeDatabase` for marriage CRUD
+- JavaScript API: Use `marriages.js` for frontend interactions
+- AJAX endpoints registered and ready to use
+
+### Future Enhancements
+
+Planned for future versions:
+- Modal-based forms for add/edit marriage (replacing prompts)
+- Link existing members as spouses (dropdown instead of text input)
+- Marriage timeline visualization
+- Surname change tracking for women across multiple marriages
+- Marriage certificate upload
+- Remove deprecated `marriage_date` column (v4.0.0)
+
+---
+
 ## [2.6.0] - 2025-10-24
 
 ### Added - Phase 2 Quick Win

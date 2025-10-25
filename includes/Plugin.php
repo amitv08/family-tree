@@ -184,6 +184,13 @@ class Plugin {
             Config::VERSION,
             true
         );
+        wp_enqueue_script(
+            'family-tree-marriages',
+            FAMILY_TREE_URL . 'assets/js/marriages.js',
+            ['jquery'],
+            Config::VERSION,
+            true
+        );
 
         // Localize script
         wp_localize_script('family-tree-members', 'family_tree', [
@@ -204,7 +211,8 @@ class Plugin {
             Config::AJAX_DELETE_CLAN,
             Config::AJAX_DELETE_FAMILY_MEMBER,
             Config::AJAX_DELETE_FAMILY_USER,
-            Config::AJAX_SOFT_DELETE_MEMBER
+            Config::AJAX_SOFT_DELETE_MEMBER,
+            Config::AJAX_DELETE_MARRIAGE
         ])) {
             return 2 * HOUR_IN_SECONDS;
         }
