@@ -66,21 +66,22 @@ ob_start();
             </div>
 
             <div class="form-group">
-                <label class="form-label">Gender</label>
+                <label class="form-label required">Gender</label>
                 <div style="display: flex; gap: var(--spacing-lg); margin-top: var(--spacing-sm);">
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="gender" value="Male" style="margin-right: var(--spacing-xs);">
+                        <input type="radio" name="gender" value="Male" required style="margin-right: var(--spacing-xs);">
                         <span>♂️ Male</span>
                     </label>
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="gender" value="Female" style="margin-right: var(--spacing-xs);">
+                        <input type="radio" name="gender" value="Female" required style="margin-right: var(--spacing-xs);">
                         <span>♀️ Female</span>
                     </label>
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="gender" value="Other" style="margin-right: var(--spacing-xs);">
+                        <input type="radio" name="gender" value="Other" required style="margin-right: var(--spacing-xs);">
                         <span>⚧️ Other</span>
                     </label>
                 </div>
+                <small class="form-help">Gender is required for proper family tree relationships</small>
             </div>
 
             <div class="form-group">
@@ -95,64 +96,71 @@ ob_start();
         <!-- Personal Information Section -->
         <div class="section">
             <h2 class="section-title">👤 Personal Information</h2>
-            
-            <div class="form-row form-row-3">
-                <div class="form-group">
-                    <label class="form-label required" for="first_name">First Name</label>
-                    <input
-                        type="text"
-                        id="first_name"
-                        name="first_name"
-                        required
-                        placeholder="e.g., John"
-                    >
-                </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="middle_name">Middle Name</label>
-                    <input
-                        type="text"
-                        id="middle_name"
-                        name="middle_name"
-                        placeholder="e.g., William"
-                    >
-                    <small class="form-help">Middle name or initial (optional)</small>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label required" for="last_name">Last Name</label>
-                    <input
-                        type="text"
-                        id="last_name_input"
-                        name="last_name"
-                        required
-                        placeholder="e.g., Smith"
-                    >
-                </div>
+            <div class="form-group">
+                <label class="form-label required" for="first_name">First Name</label>
+                <input
+                    type="text"
+                    id="first_name"
+                    name="first_name"
+                    required
+                    placeholder="e.g., Pramila"
+                >
+                <small class="form-help">Full name will be: First Name + Father's First Name + Clan Surname</small>
             </div>
+
+            <!-- Hidden fields for auto-populated middle and last name -->
+            <input type="hidden" id="middle_name" name="middle_name">
+            <input type="hidden" id="last_name" name="last_name">
 
             <div class="form-row form-row-2">
                 <div class="form-group">
-                    <label class="form-label" for="nickname">Nickname</label>
-                    <input
-                        type="text"
-                        id="nickname"
-                        name="nickname"
-                        placeholder="e.g., Bob"
-                    >
-                    <small class="form-help">Common name or nickname (optional)</small>
+                    <label class="form-label" for="parent1_id">Father's Name</label>
+                    <select id="parent1_id" name="parent1_id" class="select2-parent">
+                        <option value="">-- Select Father --</option>
+                        <?php foreach ($all_members as $m): ?>
+                            <?php if ($m->gender === 'Male'): ?>
+                                <option value="<?php echo intval($m->id); ?>" data-firstname="<?php echo esc_attr($m->first_name); ?>">
+                                    <?php echo esc_html($m->first_name . ' ' . ($m->middle_name ? $m->middle_name . ' ' : '') . $m->last_name . ' (b. ' . ($m->birth_date ?: 'N/A') . ')'); ?>
+                                </option>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="form-help">Father's first name will be used as middle name. Leave empty for root ancestors.</small>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="maiden_name">Maiden Name (Birth Surname)</label>
-                    <input
-                        type="text"
-                        id="maiden_name"
-                        name="maiden_name"
-                        placeholder="Birth surname before marriage"
-                    >
-                    <small class="form-help">For women: surname at birth, before marriage</small>
+                    <label class="form-label" for="parent2">Mother's Name</label>
+
+                    <!-- Combined dropdown with tagging (Select2 with tags) -->
+                    <select id="parent2_combined" name="parent2_combined" class="select2-tags">
+                        <option value="">-- Select or type mother's name --</option>
+                        <?php foreach ($all_members as $m): ?>
+                            <?php if ($m->gender === 'Female'): ?>
+                                <option value="member_<?php echo intval($m->id); ?>">
+                                    <?php echo esc_html($m->first_name . ' ' . ($m->middle_name ? $m->middle_name . ' ' : '') . $m->last_name . ' (b. ' . ($m->birth_date ?: 'N/A') . ')'); ?>
+                                </option>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <!-- Hidden fields to store the actual values -->
+                    <input type="hidden" id="parent2_id" name="parent2_id">
+                    <input type="hidden" id="parent2_name" name="parent2_name">
+
+                    <small class="form-help">Select from list (populated based on father's marriages) or type a new name</small>
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="nickname">Nickname</label>
+                <input
+                    type="text"
+                    id="nickname"
+                    name="nickname"
+                    placeholder="e.g., Sonu"
+                >
+                <small class="form-help">Common name or nickname (optional)</small>
             </div>
 
             <div class="form-group">
@@ -163,68 +171,6 @@ ob_start();
                     name="photo_url"
                     placeholder="https://example.com/photo.jpg"
                 >
-            </div>
-        </div>
-
-        <!-- Family Relationships Section -->
-        <div class="section">
-            <h2 class="section-title">👨‍👩‍👧‍👦 Family Relationships</h2>
-            <p class="section-description">Leave parents empty for root ancestors (family founders)</p>
-            
-            <div class="form-row form-row-2">
-                <div class="form-group">
-                    <label class="form-label" for="parent1_id">Father (Parent 1)</label>
-                    <select id="parent1_id" name="parent1_id">
-                        <option value="">-- None --</option>
-                        <?php foreach ($all_members as $m): ?>
-                            <?php if ($m->gender === 'Male'): ?>
-                                <option value="<?php echo intval($m->id); ?>">
-                                    <?php echo esc_html($m->first_name . ' ' . $m->last_name . ' (b. ' . ($m->birth_date ?: 'N/A') . ')'); ?>
-                                </option>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </select>
-                    <small class="form-help">Only male members shown. Leave empty for ancestors without recorded father.</small>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="parent2">Mother (Parent 2)</label>
-
-                    <!-- Radio toggle for mother input type -->
-                    <div style="display: flex; gap: var(--spacing-lg); margin-bottom: var(--spacing-sm);">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="radio" name="mother_input_type" value="text" checked style="margin-right: var(--spacing-xs);">
-                            <span>Enter name manually</span>
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="radio" name="mother_input_type" value="select" style="margin-right: var(--spacing-xs);">
-                            <span>Select existing member</span>
-                        </label>
-                    </div>
-
-                    <!-- Text input (default visible) -->
-                    <input
-                        type="text"
-                        id="parent2_name"
-                        name="parent2_name"
-                        placeholder="e.g., Mary Smith"
-                        style="display:block;"
-                    >
-
-                    <!-- Dropdown (hidden by default) -->
-                    <select id="parent2_id" name="parent2_id" style="display:none;">
-                        <option value="">-- None --</option>
-                        <?php foreach ($all_members as $m): ?>
-                            <?php if ($m->gender === 'Female'): ?>
-                                <option value="<?php echo intval($m->id); ?>">
-                                    <?php echo esc_html($m->first_name . ' ' . $m->last_name . ' (b. ' . ($m->birth_date ?: 'N/A') . ')'); ?>
-                                </option>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <small class="form-help">Enter manually if not in system, or select from existing female members</small>
-                </div>
             </div>
         </div>
 
@@ -257,40 +203,31 @@ ob_start();
             </div>
         </div>
 
-        <!-- Marriage Details Section (conditional) -->
-        <div class="section" id="marriage_details_section" style="display: none;">
-            <h2 class="section-title">💍 Marriage Details</h2>
-            <p class="section-description">Provide details about the marriage</p>
+        <!-- Multiple Marriages Section -->
+        <div class="section">
+            <h2 class="section-title">💍 Marriages</h2>
+            <p class="section-description">Add marriage details. You can add multiple marriages if applicable.</p>
 
-            <div class="form-row form-row-2">
-                <div class="form-group">
-                    <label class="form-label" for="spouse_name">Spouse Name</label>
-                    <input type="text" id="spouse_name" name="spouse_name" placeholder="Full name of spouse">
-                    <small class="form-help">Enter spouse's full name</small>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="marriage_date">Marriage Date</label>
-                    <input type="date" id="marriage_date" name="marriage_date">
-                </div>
+            <!-- Maiden Name (for females only) -->
+            <div class="form-group" id="maiden_name_group" style="display: none;">
+                <label class="form-label" for="maiden_name">Maiden Name (Birth Surname)</label>
+                <input
+                    type="text"
+                    id="maiden_name"
+                    name="maiden_name"
+                    placeholder="Surname before first marriage"
+                >
+                <small class="form-help">Birth surname before marriage (automatically shown for female members)</small>
             </div>
 
-            <div class="form-row form-row-2">
-                <div class="form-group">
-                    <label class="form-label" for="marriage_location">Marriage Location</label>
-                    <input type="text" id="marriage_location" name="marriage_location" placeholder="City, Country">
-                </div>
-
-                <div class="form-group" id="divorce_date_group" style="display: none;">
-                    <label class="form-label" for="divorce_date">Divorce Date</label>
-                    <input type="date" id="divorce_date" name="divorce_date">
-                </div>
+            <!-- Container for marriage entries -->
+            <div id="marriages_container">
+                <!-- Marriage entries will be added here dynamically -->
             </div>
 
-            <div class="form-group">
-                <label class="form-label" for="marriage_notes">Notes</label>
-                <textarea id="marriage_notes" name="marriage_notes" placeholder="Additional details about the marriage..." rows="3"></textarea>
-            </div>
+            <button type="button" id="add_marriage_btn" class="btn btn-outline btn-sm">
+                ➕ Add Marriage
+            </button>
         </div>
 
         <!-- Location Information Section -->
@@ -363,46 +300,121 @@ ob_start();
 jQuery(function($) {
     console.log("Add Member form initialized");
 
-    // Initialize Select2 for parent dropdowns
-    $('#parent1_id, #parent2_id').select2({
-        placeholder: '--- Search and select ---',
+    var marriageCounter = 0; // Counter for dynamic marriage entries
+
+    // Initialize Select2 for father dropdown
+    $('#parent1_id').select2({
+        placeholder: '--- Search and select father ---',
         allowClear: true,
         width: '100%',
         minimumInputLength: 0,
         language: {
-            noResults: () => 'No members found'
+            noResults: () => 'No male members found'
         }
     });
 
-    // Toggle between mother text input and dropdown
-    $('input[name="mother_input_type"]').on('change', function() {
-        if ($(this).val() === 'select') {
-            $('#parent2_name').hide().val(''); // Hide text input and clear value
-            $('#parent2_id').next('.select2-container').show(); // Show Select2 widget
-            $('#parent2_id').show(); // Show dropdown
+    // Initialize Select2 for mother dropdown with tags (allows custom text)
+    $('#parent2_combined').select2({
+        placeholder: '--- Select or type mother\'s name ---',
+        allowClear: true,
+        width: '100%',
+        tags: true,
+        createTag: function (params) {
+            var term = $.trim(params.term);
+            if (term === '') {
+                return null;
+            }
+            return {
+                id: 'text_' + term,
+                text: term + ' (new name)',
+                newTag: true
+            }
+        }
+    });
+
+    // Handle mother selection - store in hidden fields
+    $('#parent2_combined').on('change', function() {
+        var selectedValue = $(this).val();
+        if (selectedValue) {
+            if (selectedValue.startsWith('member_')) {
+                // Existing member selected
+                var memberId = selectedValue.replace('member_', '');
+                $('#parent2_id').val(memberId);
+                $('#parent2_name').val('');
+            } else if (selectedValue.startsWith('text_')) {
+                // New text entered
+                var name = selectedValue.replace('text_', '');
+                $('#parent2_id').val('');
+                $('#parent2_name').val(name);
+            } else {
+                // Direct text tag
+                $('#parent2_id').val('');
+                $('#parent2_name').val(selectedValue);
+            }
         } else {
-            $('#parent2_id').next('.select2-container').hide(); // Hide Select2 widget
-            $('#parent2_id').hide().val(''); // Hide dropdown and clear value
-            $('#parent2_name').show(); // Show text input
+            // Cleared
+            $('#parent2_id').val('');
+            $('#parent2_name').val('');
         }
     });
 
-    // Initialize: hide Select2 widget since text input is default
-    $('#parent2_id').next('.select2-container').hide();
-
-    // Smart Mother Selection - Populate based on Father's marriages
-    var fatherChangeInProgress = false; // Prevent circular triggers
-
+    // Auto-populate middle_name when father is selected
     $('#parent1_id').on('change', function() {
-        if (fatherChangeInProgress) return;
+        var selectedOption = $(this).find('option:selected');
+        var fatherFirstName = selectedOption.data('firstname') || '';
+
+        // Set middle_name to father's first name
+        $('#middle_name').val(fatherFirstName);
+
+        // Show preview in console for debugging
+        console.log('Middle name auto-populated:', fatherFirstName);
+        updateFullNamePreview();
+
+        // Fetch father's marriages for smart mother selection
         var fatherId = $(this).val();
-
-        if (!fatherId) {
-            // No father selected, reset to default behavior
-            return;
+        if (fatherId) {
+            fetchAndPopulateMotherFromMarriages(fatherId);
         }
+    });
 
-        // Fetch father's marriages
+    // Auto-populate last_name when clan surname is selected
+    $('#clan_surname_id').on('change', function() {
+        var selectedOption = $(this).find('option:selected');
+        var surname = selectedOption.data('lastname') || '';
+
+        // Set last_name to clan surname
+        $('#last_name').val(surname);
+
+        // Show preview in console for debugging
+        console.log('Last name auto-populated:', surname);
+        updateFullNamePreview();
+    });
+
+    // Show/hide maiden name based on gender
+    $('input[name="gender"]').on('change', function() {
+        var gender = $(this).val();
+        if (gender === 'Female') {
+            $('#maiden_name_group').slideDown();
+        } else {
+            $('#maiden_name_group').slideUp();
+            $('#maiden_name').val(''); // Clear value if hidden
+        }
+    });
+
+    // Update full name preview
+    function updateFullNamePreview() {
+        var firstName = $('#first_name').val() || '';
+        var middleName = $('#middle_name').val() || '';
+        var lastName = $('#last_name').val() || '';
+
+        var fullName = [firstName, middleName, lastName].filter(n => n).join(' ');
+        if (fullName) {
+            console.log('Full name preview:', fullName);
+        }
+    }
+
+    // Fetch father's marriages and populate mother dropdown
+    function fetchAndPopulateMotherFromMarriages(fatherId) {
         $.post(family_tree.ajax_url, {
             action: 'get_marriages_for_member',
             nonce: family_tree.nonce,
@@ -410,190 +422,138 @@ jQuery(function($) {
         }, function(res) {
             if (res.success && res.data.marriages && res.data.marriages.length > 0) {
                 var marriages = res.data.marriages;
+                populateMotherFromMarriages(marriages);
 
                 if (marriages.length === 1) {
-                    // Single marriage - auto-populate mother
-                    var marriage = marriages[0];
-
-                    if (marriage.wife_id) {
-                        // Wife exists as member - select from dropdown
-                        $('input[name="mother_input_type"][value="select"]').prop('checked', true).trigger('change');
-                        $('#parent2_id').val(marriage.wife_id).trigger('change');
-                        showToast('Mother auto-selected from father\'s marriage', 'success');
-                    } else if (marriage.wife_name) {
-                        // Wife is text-only - populate text field
-                        $('input[name="mother_input_type"][value="text"]').prop('checked', true).trigger('change');
-                        $('#parent2_name').val(marriage.wife_name);
-                        showToast('Mother name auto-filled from father\'s marriage', 'success');
-                    }
+                    showToast('Mother auto-selected from father\'s marriage', 'info');
                 } else {
-                    // Multiple marriages - populate dropdown with wives only
-                    populateMotherFromMarriages(marriages);
-                    showToast('Please select mother from father\'s ' + marriages.length + ' marriages', 'info');
+                    showToast('Select mother from father\'s ' + marriages.length + ' marriages', 'info');
                 }
             }
-            // If no marriages found, do nothing (user enters manually)
         }).fail(function() {
             console.log('Failed to fetch marriages for father');
         });
-    });
+    }
 
     // Populate mother dropdown with wives from marriages
     function populateMotherFromMarriages(marriages) {
-        // Switch to dropdown mode
-        $('input[name="mother_input_type"][value="select"]').prop('checked', true).trigger('change');
+        // Clear existing options except the default
+        $('#parent2_combined').find('option').not(':first').remove();
 
-        // Build options from marriages
-        var options = '<option value="">-- Select Mother from Marriages --</option>';
-        var hasTextOnlyWives = false;
-
+        // Add wives from marriages
         marriages.forEach(function(marriage, index) {
+            var option;
             if (marriage.wife_id) {
                 // Wife exists as member in system
                 var wifeName = marriage.wife_first_name + ' ' +
                               (marriage.wife_middle_name ? marriage.wife_middle_name + ' ' : '') +
                               marriage.wife_last_name;
                 var status = marriage.marriage_status ? ' (' + marriage.marriage_status + ')' : '';
-                options += '<option value="' + marriage.wife_id + '">' + wifeName + status + '</option>';
+                option = new Option(wifeName + status, 'member_' + marriage.wife_id, false, index === 0);
             } else if (marriage.wife_name) {
                 // Wife is text-only (not in system)
-                hasTextOnlyWives = true;
-                options += '<option value="" data-text-name="' + escapeHtml(marriage.wife_name) + '">' +
-                          escapeHtml(marriage.wife_name) + ' (not in system)</option>';
+                option = new Option(marriage.wife_name + ' (from marriage record)', 'text_' + marriage.wife_name, false, index === 0);
+            }
+
+            if (option) {
+                $('#parent2_combined').append(option);
             }
         });
 
-        // Add option to enter manually
-        options += '<option value="">-- Enter Different Mother --</option>';
+        // Trigger Select2 update
+        $('#parent2_combined').trigger('change');
 
-        // Update dropdown
-        var $parent2 = $('#parent2_id');
-        $parent2.html(options);
-
-        // Reinitialize Select2
-        if ($parent2.hasClass('select2-hidden-accessible')) {
-            $parent2.select2('destroy');
+        // Auto-select first marriage if only one exists
+        if (marriages.length === 1) {
+            $('#parent2_combined').trigger('change');
         }
-        $parent2.select2({
-            placeholder: '--- Select mother from marriages ---',
-            allowClear: true,
-            width: '100%'
-        });
-
-        // Handle selection of text-only wives
-        $parent2.on('select2:select', function(e) {
-            var selectedOption = $(e.params.data.element);
-            var textName = selectedOption.data('text-name');
-
-            if (textName) {
-                // Switch to text input and populate
-                $('input[name="mother_input_type"][value="text"]').prop('checked', true).trigger('change');
-                $('#parent2_name').val(textName);
-            }
-        });
     }
 
-    // Smart Father Selection - Populate based on Mother's marriages (REVERSE)
-    var motherChangeInProgress = false; // Prevent circular triggers
+    // =========================================
+    // Dynamic Marriage Entries
+    // =========================================
 
-    $('#parent2_id').on('change', function() {
-        if (motherChangeInProgress) return;
-        var motherId = $(this).val();
-
-        if (!motherId) {
-            // No mother selected, reset to default behavior
-            return;
-        }
-
-        // Skip if father already selected (user knows what they're doing)
-        if ($('#parent1_id').val()) {
-            return;
-        }
-
-        // Fetch mother's marriages
-        $.post(family_tree.ajax_url, {
-            action: 'get_marriages_for_member',
-            nonce: family_tree.nonce,
-            member_id: motherId
-        }, function(res) {
-            if (res.success && res.data.marriages && res.data.marriages.length > 0) {
-                var marriages = res.data.marriages;
-
-                if (marriages.length === 1) {
-                    // Single marriage - auto-populate father
-                    var marriage = marriages[0];
-
-                    if (marriage.husband_id) {
-                        // Husband exists as member - select from dropdown
-                        fatherChangeInProgress = true; // Prevent triggering mother logic
-                        $('#parent1_id').val(marriage.husband_id).trigger('change');
-                        fatherChangeInProgress = false;
-                        showToast('Father auto-selected from mother\'s marriage', 'success');
-                    }
-                } else {
-                    // Multiple marriages - show dropdown with husbands only
-                    populateFatherFromMarriages(marriages);
-                    showToast('Please select father from mother\'s ' + marriages.length + ' marriages', 'info');
-                }
-            }
-            // If no marriages found, do nothing (single mother, adoption, etc.)
-        }).fail(function() {
-            console.log('Failed to fetch marriages for mother');
-        });
+    // Add a new marriage entry
+    $('#add_marriage_btn').on('click', function() {
+        marriageCounter++;
+        addMarriageEntry(marriageCounter);
     });
 
-    // Populate father dropdown with husbands from marriages
-    function populateFatherFromMarriages(marriages) {
-        var options = '<option value="">-- Select Father from Marriages --</option>';
+    function addMarriageEntry(index, data = {}) {
+        var html = `
+            <div class="marriage-entry" data-index="${index}" style="border: 1px solid var(--color-border); padding: var(--spacing-md); margin-bottom: var(--spacing-md); border-radius: 4px; position: relative;">
+                <button type="button" class="remove-marriage-btn" style="position: absolute; top: 10px; right: 10px; background: var(--color-error); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px; line-height: 1;">×</button>
 
-        marriages.forEach(function(marriage) {
-            if (marriage.husband_id) {
-                // Husband exists as member in system
-                var husbandName = marriage.husband_first_name + ' ' +
-                                 (marriage.husband_middle_name ? marriage.husband_middle_name + ' ' : '') +
-                                 marriage.husband_last_name;
-                var status = marriage.marriage_status ? ' (' + marriage.marriage_status + ')' : '';
-                options += '<option value="' + marriage.husband_id + '">' + husbandName + status + '</option>';
-            }
-        });
+                <h4 style="margin-bottom: var(--spacing-md);">Marriage #${index}</h4>
 
-        // Add option to leave empty (single mother, adoption)
-        options += '<option value="">-- No Father / Single Mother --</option>';
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label class="form-label">Spouse Name</label>
+                        <input type="text" name="marriages[${index}][spouse_name]" placeholder="Full name of spouse" value="${data.spouse_name || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Marriage Date</label>
+                        <input type="date" name="marriages[${index}][marriage_date]" value="${data.marriage_date || ''}">
+                    </div>
+                </div>
 
-        // Update dropdown
-        var $parent1 = $('#parent1_id');
-        var currentVal = $parent1.val(); // Preserve current selection
-        $parent1.html(options);
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label class="form-label">Marriage Location</label>
+                        <input type="text" name="marriages[${index}][marriage_location]" placeholder="City, Country" value="${data.marriage_location || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Marriage Status</label>
+                        <select name="marriages[${index}][marriage_status]" class="marriage-status-select">
+                            <option value="married" ${data.marriage_status === 'married' ? 'selected' : ''}>Married</option>
+                            <option value="divorced" ${data.marriage_status === 'divorced' ? 'selected' : ''}>Divorced</option>
+                            <option value="widowed" ${data.marriage_status === 'widowed' ? 'selected' : ''}>Widowed</option>
+                        </select>
+                    </div>
+                </div>
 
-        // Reinitialize Select2
-        if ($parent1.hasClass('select2-hidden-accessible')) {
-            $parent1.select2('destroy');
-        }
-        $parent1.select2({
-            placeholder: '--- Select father from marriages ---',
-            allowClear: true,
-            width: '100%'
-        });
-    }
+                <div class="form-group divorce-date-field" style="display: ${data.marriage_status === 'divorced' ? 'block' : 'none'};">
+                    <label class="form-label">Divorce Date</label>
+                    <input type="date" name="marriages[${index}][divorce_date]" value="${data.divorce_date || ''}">
+                </div>
 
-    // Handle marital status change
-    $('#marital_status').on('change', function() {
-        var status = $(this).val();
-        if (status === 'married' || status === 'divorced' || status === 'widowed') {
-            $('#marriage_details_section').slideDown();
-            // Show divorce date only for divorced status
-            if (status === 'divorced') {
-                $('#divorce_date_group').show();
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea name="marriages[${index}][notes]" rows="2" placeholder="Additional details about this marriage...">${data.notes || ''}</textarea>
+                </div>
+            </div>
+        `;
+
+        $('#marriages_container').append(html);
+
+        // Add event listener for divorce date toggle
+        $(`[name="marriages[${index}][marriage_status]"]`).on('change', function() {
+            var divorceField = $(this).closest('.marriage-entry').find('.divorce-date-field');
+            if ($(this).val() === 'divorced') {
+                divorceField.slideDown();
             } else {
-                $('#divorce_date_group').hide();
-                $('#divorce_date').val('');
+                divorceField.slideUp();
+                divorceField.find('input').val('');
             }
-        } else {
-            $('#marriage_details_section').slideUp();
-            // Clear marriage fields when hiding
-            $('#spouse_name, #marriage_date, #marriage_location, #divorce_date, #marriage_notes').val('');
+        });
+    }
+
+    // Remove marriage entry
+    $(document).on('click', '.remove-marriage-btn', function() {
+        if (confirm('Are you sure you want to remove this marriage entry?')) {
+            $(this).closest('.marriage-entry').slideUp(function() {
+                $(this).remove();
+                renumberMarriageEntries();
+            });
         }
     });
+
+    // Renumber marriage entries after deletion
+    function renumberMarriageEntries() {
+        $('.marriage-entry').each(function(idx) {
+            $(this).find('h4').text('Marriage #' + (idx + 1));
+        });
+    }
 
     // Load clan details when clan selected
     function loadClanDetails(clanId) {
@@ -633,14 +593,7 @@ jQuery(function($) {
         loadClanDetails($(this).val());
     });
 
-    // Auto-fill last name when surname selected
-    $('#clan_surname_id').on('change', function() {
-        var sel = $(this).find('option:selected');
-        var ln = sel.data('lastname') || '';
-        if (ln) {
-            $('#last_name_input').val(ln);
-        }
-    });
+    // Note: clan_surname_id change handler already defined above in auto-populate logic
 
     // Form submission
     $('#addMemberForm').on('submit', function(e) {
@@ -652,17 +605,23 @@ jQuery(function($) {
             return;
         }
 
-        if (!$('#last_name_input').val().trim()) {
-            showToast('Last name is required', 'error');
+        // Check if gender is selected
+        if (!$('input[name="gender"]:checked').val()) {
+            showToast('Gender is required', 'error');
             return;
         }
 
-        // Check for circular reference (person as their own parent)
-        var memberId = null; // New members don't have ID yet
-        var parent1 = $('#parent1_id').val();
+        // Check if clan is selected
+        if (!$('#clan_id').val()) {
+            showToast('Clan is required', 'error');
+            return;
+        }
+
+        // Validate parent selection
+        var parent1 = $('#parent2_id').val();
         var parent2 = $('#parent2_id').val();
 
-        if (parent1 && parent1 === parent2) {
+        if (parent1 && parent2 && parent1 === parent2) {
             showToast('Mother and Father cannot be the same person', 'error');
             return;
         }
@@ -691,10 +650,18 @@ jQuery(function($) {
 
         $.post(family_tree.ajax_url, data, function(res) {
             if (res.success) {
-                showToast('Member added successfully! 🎉', 'success');
-                setTimeout(() => {
-                    window.location.href = '/browse-members';
-                }, 1200);
+                // After member is created, add marriages if any
+                var memberId = res.data.member_id;
+                saveMarriages(memberId, function(success) {
+                    if (success) {
+                        showToast('Member and marriages added successfully! 🎉', 'success');
+                    } else {
+                        showToast('Member added but some marriages failed to save', 'warning');
+                    }
+                    setTimeout(() => {
+                        window.location.href = '/browse-members';
+                    }, 1500);
+                });
             } else {
                 showToast('Error: ' + (res.data || 'Failed to add member'), 'error');
                 btn.prop('disabled', false).html(originalText);
@@ -704,6 +671,65 @@ jQuery(function($) {
             btn.prop('disabled', false).html(originalText);
         });
     });
+
+    // Save marriages to database
+    function saveMarriages(memberId, callback) {
+        var marriages = [];
+        var gender = $('input[name="gender"]:checked').val();
+
+        // Collect marriage data from form
+        $('.marriage-entry').each(function(idx) {
+            var index = $(this).data('index');
+            var spouse_name = $(this).find(`[name="marriages[${index}][spouse_name]"]`).val();
+
+            if (spouse_name) { // Only save if spouse name is provided
+                var marriageData = {
+                    spouse_name: spouse_name,
+                    marriage_date: $(this).find(`[name="marriages[${index}][marriage_date]"]`).val(),
+                    marriage_location: $(this).find(`[name="marriages[${index}][marriage_location]"]`).val(),
+                    marriage_status: $(this).find(`[name="marriages[${index}][marriage_status]"]`).val(),
+                    divorce_date: $(this).find(`[name="marriages[${index}][divorce_date]"]`).val(),
+                    notes: $(this).find(`[name="marriages[${index}][notes]"]`).val(),
+                    marriage_order: idx + 1
+                };
+
+                // Set husband/wife based on member gender
+                if (gender === 'Male') {
+                    marriageData.husband_id = memberId;
+                    marriageData.wife_name = spouse_name;
+                } else if (gender === 'Female') {
+                    marriageData.wife_id = memberId;
+                    marriageData.husband_name = spouse_name;
+                } else {
+                    marriageData.husband_id = memberId;
+                    marriageData.wife_name = spouse_name;
+                }
+
+                marriages.push(marriageData);
+            }
+        });
+
+        // If no marriages, callback immediately
+        if (marriages.length === 0) {
+            callback(true);
+            return;
+        }
+
+        // Save each marriage
+        var savePromises = [];
+        marriages.forEach(function(marriage) {
+            marriage.action = 'add_marriage';
+            marriage.nonce = family_tree.nonce;
+            savePromises.push($.post(family_tree.ajax_url, marriage));
+        });
+
+        // Wait for all marriages to be saved
+        $.when.apply($, savePromises).done(function() {
+            callback(true);
+        }).fail(function() {
+            callback(false);
+        });
+    }
 
     // Helper function
     function escapeHtml(text) {

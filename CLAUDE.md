@@ -349,6 +349,43 @@ class MemberController extends BaseController {
 - **Type Safety**: PHP catches errors at development time
 - **Performance**: No impact (autoloader is fast, lazy loading)
 
+## Version History
+
+### v3.2.0 (Current - October 2025)
+**Member Form Enhancements**
+- ✅ Gender field made mandatory with validation
+- ✅ Auto-populated middle_name from father's first_name
+- ✅ Auto-populated last_name from clan_surname_id
+- ✅ Moved parent fields to Personal Information section
+- ✅ Smart mother selection from father's marriages (Select2 with tags)
+- ✅ Maiden name moved to Marriages section (gender-aware visibility)
+- ✅ Multiple marriages support (add/edit/delete unlimited marriages)
+- ✅ Migration script for existing members: `migrate_member_names()`
+- Files modified: add-member.php, edit-member.php, database.php (~1,020 lines)
+
+### v3.1.0 (2025)
+**Smart Parent Selection and Performance**
+- Smart parent selection based on marriages
+- Performance optimizations for large family trees
+
+### v3.0.0 (2025)
+**Marriage Tracking and Life Events**
+- Multiple marriages tracking via wp_family_marriages table
+- Marriage details: date, location, status, divorce tracking
+- Life events integration
+- Marriage form integration
+- Tree view zoom controls
+
+### v2.4.0 (2024)
+**MVC Refactor**
+- Complete architectural refactoring
+- PSR-4 autoloading with namespaces (FamilyTree\)
+- MVC pattern (Controllers, Repositories, Validators)
+- Config class for constants
+- Router class with middleware
+- Base classes to eliminate code duplication
+- 100% backward compatible with existing code
+
 ## Known Issues & Technical Debt
 
 - Legacy database classes kept for backward compatibility (will migrate templates in future)

@@ -421,6 +421,25 @@ class FamilyTreeDatabase {
             'nickname' => isset($data['nickname']) ? sanitize_text_field($data['nickname']) : null,
         ];
 
+        // Auto-populate middle_name from parent1's first_name if not already set
+        if (empty($insert['middle_name']) && !empty($insert['parent1_id'])) {
+            $parent1 = self::get_member($insert['parent1_id']);
+            if ($parent1) {
+                $insert['middle_name'] = $parent1->first_name;
+            }
+        }
+
+        // Auto-populate last_name from clan_surname if not already set
+        if (empty($insert['last_name']) && !empty($insert['clan_surname_id'])) {
+            $surname = $wpdb->get_var($wpdb->prepare(
+                "SELECT last_name FROM {$wpdb->prefix}clan_surnames WHERE id = %d",
+                $insert['clan_surname_id']
+            ));
+            if ($surname) {
+                $insert['last_name'] = $surname;
+            }
+        }
+
         $formats = array_fill(0, count($insert), '%s'); // wpdb will coerce where needed
         $res = $wpdb->insert($table, $insert, $formats);
         if ($res === false) {
@@ -464,6 +483,25 @@ class FamilyTreeDatabase {
             'maiden_name' => isset($data['maiden_name']) ? sanitize_text_field($data['maiden_name']) : null,
             'nickname' => isset($data['nickname']) ? sanitize_text_field($data['nickname']) : null,
         ];
+
+        // Auto-populate middle_name from parent1's first_name if not already set
+        if (empty($update['middle_name']) && !empty($update['parent1_id'])) {
+            $parent1 = self::get_member($update['parent1_id']);
+            if ($parent1) {
+                $update['middle_name'] = $parent1->first_name;
+            }
+        }
+
+        // Auto-populate last_name from clan_surname if not already set
+        if (empty($update['last_name']) && !empty($update['clan_surname_id'])) {
+            $surname = $wpdb->get_var($wpdb->prepare(
+                "SELECT last_name FROM {$wpdb->prefix}clan_surnames WHERE id = %d",
+                $update['clan_surname_id']
+            ));
+            if ($surname) {
+                $update['last_name'] = $surname;
+            }
+        }
 
         $res = $wpdb->update($table, $update, ['id' => intval($id)]);
         if ($res === false) {
@@ -882,6 +920,63 @@ public static function validate_member_data($data, $member_id = null) {
 
         error_log("migrate_existing_marriages: Successfully migrated {$migrated} marriages");
     }
-}
+
+    /**
+     * Migrate existing member names - auto-populate middle_name and last_name
+     *
+     * This function updates existing members to populate:
+     * - middle_name from parent1's first_name
+     * - last_name from clan_surname
+     *
+     * @return array Result statistics
+     */
+    public static function migrate_member_names() {
+        global $wpdb;
+        $members_table = $wpdb->prefix . 'family_members';
+        $surnames_table = $wpdb->prefix . 'clan_surnames';
+
+        $stats = [
+            'middle_name_updated' => 0,
+            'last_name_updated' => 0,
+            'errors' => []
+        ];
+
+        // Update middle_name from parent1's first_name
+        $result = $wpdb->query("
+            UPDATE $members_table m
+            INNER JOIN $members_table p ON m.parent1_id = p.id
+            SET m.middle_name = p.first_name
+            WHERE m.parent1_id IS NOT NULL
+            AND (m.middle_name IS NULL OR m.middle_name = '')
+            AND m.is_deleted = 0
+        ");
+
+        if ($result === false) {
+            $stats['errors'][] = 'Middle name migration failed: ' . $wpdb->last_error;
+        } else {
+            $stats['middle_name_updated'] = $result;
+        }
+
+        // Update last_name from clan_surname
+        $result = $wpdb->query("
+            UPDATE $members_table m
+            INNER JOIN $surnames_table s ON m.clan_surname_id = s.id
+            SET m.last_name = s.last_name
+            WHERE m.clan_surname_id IS NOT NULL
+            AND (m.last_name IS NULL OR m.last_name = '')
+            AND m.is_deleted = 0
+        ");
+
+        if ($result === false) {
+            $stats['errors'][] = 'Last name migration failed: ' . $wpdb->last_error;
+        } else {
+            $stats['last_name_updated'] = $result;
+        }
+
+        error_log("migrate_member_names: Updated {$stats['middle_name_updated']} middle names and {$stats['last_name_updated']} last names");
+        return $stats;
+    }
+
+} // End class FamilyTreeDatabase
+
 } // class_exists guard
-?>

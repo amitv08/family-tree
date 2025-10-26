@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Family Tree
  * Description: Complete family tree management system with clans and members.
- * Version: 3.2.0
+ * Version: 3.3.0
  * Author: Amit Vengsarkar
  *
  * @package FamilyTree
