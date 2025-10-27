@@ -7,6 +7,229 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.5.0] - 2025-10-27
+
+### Changed - Form Layout Enhancements & Visual Improvements
+
+**Enhancement**: Improved form usability with better field grouping, optimized field sizes, and enhanced visual presentation.
+
+#### Layout Improvements
+- **Gender + Adoption**: Combined onto single line using 2-column grid layout
+  - Gender radio buttons on left
+  - Adoption checkbox on right
+  - Better space utilization and visual flow
+
+- **First Name + Nickname**: Combined onto single line using 2-column grid layout
+  - First Name on left (required field)
+  - Nickname on right (optional)
+  - More efficient form layout
+  - Maintains field width constraints for professional appearance
+
+#### Field Size Optimization
+- **Date Fields**: Optimized for compact display
+  - `max-width: 180px` for standalone date inputs
+  - `max-width: 170px` for date inputs in 2-column rows
+  - Prevents unnecessary horizontal stretching
+
+- **Dropdown Fields**: Optimized sizing
+  - Select dropdowns no longer stretch unnecessarily
+  - Appropriate widths for content (clan, location, surname, gender, status)
+
+- **Marriage Form**: Already uses optimized 2-column layout
+  - Spouse Name + Marriage Date in first row
+  - Marriage Location + Marriage Status in second row
+  - Date fields automatically constrained
+  - Professional, compact appearance
+
+#### Location Section Enhancement
+- **Visual Improvements**:
+  - Added section description: "Current or last known residential address of the family member"
+  - Enhanced field labels with icons:
+    - 🏠 Address
+    - 🏙️ City
+    - 🗺️ State/Province
+    - 🌍 Country
+    - 📮 Postal Code
+  - Improved placeholder text for address field
+  - Better visual hierarchy and user guidance
+
+- **Result**: More intuitive and visually appealing location data entry
+
+#### Applied To
+- ✅ `templates/members/add-member.php`
+- ✅ `templates/members/edit-member.php`
+- ✅ `assets/css/forms.css`
+
+### Technical Details
+- Used `.form-row.form-row-2` for 2-column layouts
+- CSS grid with responsive breakpoint at 768px
+- Mobile-friendly: columns stack vertically on small screens
+- Maintains existing field validation and functionality
+- **Consistent Layout**: Both add-member and edit-member forms have identical layouts
+- Removed duplicate nickname field from edit form for cleaner structure
+
+### User Experience
+- **Faster Form Completion**: Related fields grouped together
+- **Less Scrolling**: More compact layout without sacrificing readability
+- **Better Visual Guidance**: Icons and descriptions help users understand each section
+- **Professional Appearance**: Balanced field sizes and spacing
+- **Responsive Design**: Works beautifully on desktop and mobile
+
+---
+
+## [3.4.0] - 2025-10-27
+
+### Added - Data Quality & Form Improvements
+
+**Enhancement**: Mandatory fields for better traceability, professional form styling, and comprehensive validation.
+
+#### Mandatory Clan Location & Surname
+- **Clan Location**: Now required for all members
+- **Clan Surname**: Now required for all members
+- **Rationale**: Ensures better data traceability over time
+- **Implementation**: Added `required` attribute + server validation
+- **Help Text**: "(Required for traceability)"
+- **Visual**: Red asterisk (*) on both fields
+- **Impact**: Cannot submit form without selecting both
+
+#### Professional Form Styling
+- **New CSS Classes**: Field width control system
+  - `.field-xs` → 120px (very short fields)
+  - `.field-sm` → 200px (short - nicknames, postal codes)
+  - `.field-md` → 300px (medium - names, cities)
+  - `.field-lg` → 400px (large)
+  - `.field-xl` → 600px (extra large - addresses, URLs)
+  - `.field-full` → 100% (textareas)
+
+- **Applied to All Forms**:
+  - First Name: 300px (professional, not overwhelming)
+  - Nickname: 200px (compact)
+  - Photo URL: 600px (accommodates long URLs)
+  - Address: 600px (full addresses)
+  - City/State/Country: 300px (balanced)
+  - Postal Code: 200px (short as it should be)
+  - Biography: Full width
+
+- **Result**: Clean, professional appearance with appropriate field sizes
+
+#### Comprehensive Input Validation
+
+**Client-Side HTML5 Validation**:
+- `required` attribute on all mandatory fields
+- `maxlength` on all text inputs (prevents overflow)
+- `minlength="1"` on first name
+- `pattern="[A-Za-z\s\-']+"` for name validation (letters, spaces, hyphens, apostrophes only)
+- `title` attributes for helpful error messages
+- `type="url"` for photo URL with validation
+- Immediate feedback before submission
+
+**Server-Side Validation** (Enhanced):
+- Existing `validate_member_data()` function working correctly
+- Length limits enforced:
+  - Names: 100 chars max
+  - Biography: 5000 chars max (updated from 10000)
+  - Address: 500 chars max
+  - City/State/Country: 100 chars max
+  - Postal code: 20 chars max
+- URL format validation
+- Date format validation (YYYY-MM-DD)
+- Death date cannot be before birth date
+
+#### Data Check Tool
+- **New File**: `check-missing-data.php`
+- **Purpose**: Identify members missing required location/surname
+- **Features**:
+  - Visual report of missing data
+  - Table with member details
+  - Edit links for quick fixes
+  - Success message if all data complete
+  - Instructions for fixing issues
+
+### Changed
+- **Field Widths**: All forms now have professional, varied field widths (not all full width)
+- **Validation**: Stricter validation prevents invalid data entry
+- **Biography Length**: Reduced from 10,000 to 5,000 characters for consistency
+- **Required Fields**: Location and surname now mandatory (breaking change for existing workflow)
+
+### Fixed
+- **Fatal Error**: Removed duplicate `validate_member_data()` function
+- **PHP Error**: "Cannot redeclare function" error resolved
+- **Validation Logic**: Removed conflicting validation calls in add/update methods
+
+### Files Modified
+- **assets/css/forms.css** - Added field width classes (35 lines)
+- **includes/database.php** - Removed duplicate validation function
+- **templates/members/add-member.php** - Added field widths + HTML5 validation
+- **templates/members/edit-member.php** - Added field widths + HTML5 validation
+
+### Files Added
+- **check-missing-data.php** - Data diagnostic tool
+- **TESTING_GUIDE_v3.4.md** - Comprehensive testing guide
+
+### Breaking Changes
+⚠️ **Clan Location & Surname Now Required**
+- Existing members without location/surname cannot be edited until fields are filled
+- Use `check-missing-data.php` to identify affected members
+- Fill missing data manually or via migration script
+
+### Migration Notes
+
+**For Existing Installations**:
+1. Update plugin files
+2. Run data check: `check-missing-data.php`
+3. If members are missing data:
+   - **Option A**: Edit members manually via provided links
+   - **Option B**: Contact developer for auto-migration script
+4. Test forms with hard refresh (Ctrl+Shift+R)
+
+**For New Installations**:
+- No migration needed
+- All new members will require location/surname
+
+### Technical Details
+
+**CSS Enhancement**:
+```css
+/* New field width control */
+.field-sm { max-width: 200px !important; }
+.field-md { max-width: 300px !important; }
+.field-xl { max-width: 600px !important; }
+```
+
+**HTML5 Validation**:
+```html
+<input type="text" name="first_name"
+       required
+       maxlength="100"
+       pattern="[A-Za-z\s\-']+"
+       title="Please enter a valid name">
+```
+
+### Upgrade Notes
+
+**From 3.3.0 to 3.4.0**:
+- Hard refresh browser to see CSS changes (Ctrl+Shift+R)
+- Check for members missing location/surname
+- Fill in missing data before editing members
+- Test form validation works correctly
+
+**Compatibility**:
+- ✅ Backward compatible (existing data preserved)
+- ⚠️ Requires data completion for members missing location/surname
+- ✅ No database schema changes
+- ✅ All existing functionality intact
+
+### Testing Guide
+- Complete testing guide available: `TESTING_GUIDE_v3.4.md`
+- Includes 7 comprehensive test scenarios
+- Quick 5-minute test checklist provided
+
+### Known Limitations
+- IDE may show false positive warnings in `wp-settings.php` (can be ignored)
+- Members without location/surname must be updated before editing
+
+---
+
 ## [3.3.0] - 2025-10-26
 
 ### Added - Member Form Enhancements & Auto-Population

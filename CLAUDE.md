@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a **Family Tree WordPress Plugin** - a complete genealogy and clan management system for WordPress. The plugin enables creating family trees, managing members and clans, tracking multiple marriages, smart parent selection, and visualizing relationships with an interactive D3.js tree view.
 
-**Current Version:** 3.2.0
+**Current Version:** 3.5.0
 **Author:** Amit Vengsarkar
 
 **Architecture:** Modern MVC with PSR-4 autoloading, namespaces, separation of concerns, and performance-optimized database queries
@@ -351,8 +351,20 @@ class MemberController extends BaseController {
 
 ## Version History
 
-### v3.2.0 (Current - October 2025)
-**Member Form Enhancements**
+### v3.4.0 (Current - October 2025)
+**Data Quality & Form Improvements**
+- ✅ Mandatory clan location and surname for better traceability
+- ✅ Professional form styling with field width control (.field-xs to .field-xl)
+- ✅ Comprehensive HTML5 input validation (required, maxlength, pattern, type)
+- ✅ Enhanced server-side validation (existing function)
+- ✅ Data check tool: `check-missing-data.php` to identify members missing required fields
+- ✅ Appropriate field sizes: First Name (300px), Nickname (200px), Photo URL (600px), etc.
+- ✅ Fixed duplicate function error in database.php
+- Files modified: forms.css, add-member.php, edit-member.php, database.php
+- Breaking change: Clan location & surname now required
+
+### v3.3.0 (October 2025)
+**Member Form Enhancements & Auto-Population**
 - ✅ Gender field made mandatory with validation
 - ✅ Auto-populated middle_name from father's first_name
 - ✅ Auto-populated last_name from clan_surname_id

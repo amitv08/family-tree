@@ -49,47 +49,49 @@ ob_start();
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="clan_location_id">Location</label>
-                    <select id="clan_location_id" name="clan_location_id">
+                    <label class="form-label required" for="clan_location_id">Location</label>
+                    <select id="clan_location_id" name="clan_location_id" required>
                         <option value="">-- Select Location --</option>
                     </select>
-                    <small class="form-help">Primary location for this clan member</small>
+                    <small class="form-help">Primary location for this clan member (Required for traceability)</small>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="clan_surname_id">Surname</label>
-                    <select id="clan_surname_id" name="clan_surname_id">
+                    <label class="form-label required" for="clan_surname_id">Surname</label>
+                    <select id="clan_surname_id" name="clan_surname_id" required>
                         <option value="">-- Select Surname --</option>
                     </select>
-                    <small class="form-help">Auto-filled from surname; editable</small>
+                    <small class="form-help">Used as last name (Required for traceability)</small>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label required">Gender</label>
-                <div style="display: flex; gap: var(--spacing-lg); margin-top: var(--spacing-sm);">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="gender" value="Male" required style="margin-right: var(--spacing-xs);">
-                        <span>♂️ Male</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="gender" value="Female" required style="margin-right: var(--spacing-xs);">
-                        <span>♀️ Female</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="gender" value="Other" required style="margin-right: var(--spacing-xs);">
-                        <span>⚧️ Other</span>
+            <!-- Gender and Adoption on same line -->
+            <div class="form-row form-row-2">
+                <div class="form-group">
+                    <label class="form-label required">Gender</label>
+                    <div style="display: flex; gap: var(--spacing-lg); margin-top: var(--spacing-sm);">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="gender" value="Male" required style="margin-right: var(--spacing-xs);">
+                            <span>♂️ Male</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="gender" value="Female" required style="margin-right: var(--spacing-xs);">
+                            <span>♀️ Female</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="gender" value="Other" required style="margin-right: var(--spacing-xs);">
+                            <span>⚧️ Other</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Adoption Status</label>
+                    <label style="display: flex; align-items: center; cursor: pointer; margin-top: var(--spacing-sm); padding: var(--spacing-sm) 0;">
+                        <input type="checkbox" id="is_adopted" name="is_adopted" value="1" style="margin-right: var(--spacing-sm);">
+                        <span>🤝 This person is adopted</span>
                     </label>
                 </div>
-                <small class="form-help">Gender is required for proper family tree relationships</small>
-            </div>
-
-            <div class="form-group">
-                <label style="display: flex; align-items: center; cursor: pointer; margin-top: var(--spacing-md);">
-                    <input type="checkbox" id="is_adopted" name="is_adopted" value="1" style="margin-right: var(--spacing-sm);">
-                    <span>🤝 This person is adopted</span>
-                </label>
-                <small class="form-help">Check if this member was adopted by the parents listed below</small>
             </div>
         </div>
 
@@ -97,21 +99,40 @@ ob_start();
         <div class="section">
             <h2 class="section-title">👤 Personal Information</h2>
 
-            <div class="form-group">
-                <label class="form-label required" for="first_name">First Name</label>
-                <input
-                    type="text"
-                    id="first_name"
-                    name="first_name"
-                    required
-                    placeholder="e.g., Pramila"
-                >
-                <small class="form-help">Full name will be: First Name + Father's First Name + Clan Surname</small>
-            </div>
-
             <!-- Hidden fields for auto-populated middle and last name -->
             <input type="hidden" id="middle_name" name="middle_name">
             <input type="hidden" id="last_name" name="last_name">
+
+            <!-- First Name and Nickname on same line -->
+            <div class="form-row form-row-2">
+                <div class="form-group">
+                    <label class="form-label required" for="first_name">First Name</label>
+                    <input
+                        type="text"
+                        id="first_name"
+                        name="first_name"
+                        required
+                        maxlength="100"
+                        minlength="1"
+                        pattern="[A-Za-z\s\-']+"
+                        title="Please enter a valid name (letters, spaces, hyphens, and apostrophes only)"
+                        placeholder="e.g., Pramila"
+                    >
+                    <small class="form-help">Full name will be: First Name + Father's First Name + Clan Surname</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="nickname">Nickname</label>
+                    <input
+                        type="text"
+                        id="nickname"
+                        name="nickname"
+                        maxlength="100"
+                        placeholder="e.g., Sonu"
+                    >
+                    <small class="form-help">Common name or nickname (optional)</small>
+                </div>
+            </div>
 
             <div class="form-row form-row-2">
                 <div class="form-group">
@@ -153,24 +174,16 @@ ob_start();
             </div>
 
             <div class="form-group">
-                <label class="form-label" for="nickname">Nickname</label>
-                <input
-                    type="text"
-                    id="nickname"
-                    name="nickname"
-                    placeholder="e.g., Sonu"
-                >
-                <small class="form-help">Common name or nickname (optional)</small>
-            </div>
-
-            <div class="form-group">
                 <label class="form-label" for="photo_url">Photo URL</label>
                 <input
                     type="url"
                     id="photo_url"
                     name="photo_url"
+                    class="field-xl"
                     placeholder="https://example.com/photo.jpg"
+                    title="Please enter a valid URL starting with http:// or https://"
                 >
+                <small class="form-help">Direct link to member's photo</small>
             </div>
         </div>
 
@@ -233,36 +246,39 @@ ob_start();
         <!-- Location Information Section -->
         <div class="section">
             <h2 class="section-title">📍 Location Information</h2>
-            
+            <p class="section-description">Current or last known residential address of the family member.</p>
+
             <div class="form-group">
-                <label class="form-label" for="address">Address</label>
-                <input 
-                    type="text" 
-                    id="address" 
-                    name="address" 
-                    placeholder="Street address"
+                <label class="form-label" for="address">🏠 Address</label>
+                <input
+                    type="text"
+                    id="address"
+                    name="address"
+                    class="field-xl"
+                    maxlength="500"
+                    placeholder="Street address, building, apartment number"
                 >
             </div>
 
             <div class="form-row form-row-2">
                 <div class="form-group">
-                    <label class="form-label" for="city">City</label>
-                    <input type="text" id="city" name="city" placeholder="e.g., London">
+                    <label class="form-label" for="city">🏙️ City</label>
+                    <input type="text" id="city" name="city" class="field-md" maxlength="100" placeholder="e.g., London">
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="state">State/Province</label>
-                    <input type="text" id="state" name="state" placeholder="e.g., England">
+                    <label class="form-label" for="state">🗺️ State/Province</label>
+                    <input type="text" id="state" name="state" class="field-md" maxlength="100" placeholder="e.g., England">
                 </div>
             </div>
 
             <div class="form-row form-row-2">
                 <div class="form-group">
-                    <label class="form-label" for="country">Country</label>
-                    <input type="text" id="country" name="country" placeholder="e.g., United Kingdom">
+                    <label class="form-label" for="country">🌍 Country</label>
+                    <input type="text" id="country" name="country" class="field-md" maxlength="100" placeholder="e.g., United Kingdom">
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="postal_code">Postal Code</label>
-                    <input type="text" id="postal_code" name="postal_code" placeholder="e.g., SW1A 1AA">
+                    <label class="form-label" for="postal_code">📮 Postal Code</label>
+                    <input type="text" id="postal_code" name="postal_code" class="field-sm" maxlength="20" placeholder="e.g., SW1A 1AA">
                 </div>
             </div>
         </div>
@@ -272,12 +288,13 @@ ob_start();
             <h2 class="section-title">📖 Biography</h2>
             <div class="form-group">
                 <label class="form-label" for="biography">About This Person</label>
-                <textarea 
-                    id="biography" 
-                    name="biography" 
+                <textarea
+                    id="biography"
+                    name="biography"
+                    maxlength="5000"
                     placeholder="Share interesting facts, achievements, and memories about this family member..."
                 ></textarea>
-                <small class="form-help">Optional. Write a short biography or notes about this person</small>
+                <small class="form-help">Optional. Write a short biography or notes about this person (max 5000 characters)</small>
             </div>
         </div>
 
