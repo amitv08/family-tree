@@ -1,0 +1,96 @@
+version: '3.8'
+
+# Development overrides for docker-compose.yml
+# This file is automatically merged with docker-compose.yml when running docker-compose
+
+services:
+  wordpress:
+    environment:
+      WORDPRESS_DEBUG: "true"
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_DEBUG', true);
+        define('WP_DEBUG_LOG', true);
+        define('WP_DEBUG_DISPLAY', false);
+        define('SCRIPT_DEBUG', true);
+        define('WP_CACHE', false);
+        define('WP_MEMORY_LIMIT', '512M');
+        define('WP_MAX_MEMORY_LIMIT', '1024M');
+    volumes:
+      # Mount source code for live development
+      - ./:/var/www/html/wp-content/plugins/family-tree
+    # Override user for development (allows file writes)
+    user: ""
+
+  mysql:
+    # Enable MySQL logging for development
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --explicit_defaults_for_timestamp=1
+      --max_connections=200
+      --innodb_buffer_pool_size=256M
+      --innodb_log_file_size=64M
+      --general_log=1
+      --general_log_file=/var/lib/mysql/mysql.log
+      --slow_query_log=1
+      --slow_query_log_file=/var/lib/mysql/mysql-slow.log
+      --long_query_time=1
+    volumes:
+      # Mount logs for easy access
+      - ./docker/logs/mysql:/var/lib/mysql
+    ports:
+      - "3306:3306"  # Expose MySQL port for local tools
+
+  redis:
+    ports:
+      - "6379:6379"  # Expose Redis port for debugging
+
+  # Development tools
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: family-tree-mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web interface
+    networks:
+      - family-tree-network
+    profiles:
+      - dev
+
+  # PHPMyAdmin as alternative to Adminer
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: family-tree-phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USER:-familytree}
+      PMA_PASSWORD: ${DB_PASSWORD:-changeme123}
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "${PMA_PORT:-8082}:80"
+    depends_on:
+      - mysql
+    networks:
+      - family-tree-network
+    profiles:
+      - dev
+
+  # Node.js for frontend development
+  node:
+    image: node:18-alpine
+    container_name: family-tree-node
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev"
+    networks:
+      - family-tree-network
+    profiles:
+      - dev
+
+# Development volumes for easy access
