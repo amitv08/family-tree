@@ -3,27 +3,24 @@
  * PHPUnit Bootstrap File
  */
 
-// Check if we're running integration tests or unit tests
-$testSuite = getenv('PHPUNIT_TESTSUITE') ?: '';
+// Load Composer autoloader first
+$autoloader = dirname(__DIR__) . '/vendor/autoload.php';
+if (file_exists($autoloader)) {
+    require_once $autoloader;
+}
 
-// For unit tests, we don't need WordPress test environment
-if ($testSuite === 'Unit Tests' || strpos($testSuite, 'Unit') !== false) {
-    // Simple bootstrap for unit tests - just load Composer autoloader
-    $autoloader = dirname(__DIR__) . '/vendor/autoload.php';
-    if (file_exists($autoloader)) {
-        require_once $autoloader;
-    }
+// Check if WordPress test environment is available
+$wpTestsDir = getenv('WP_TESTS_DIR') ?: '/tmp/wordpress-tests-lib';
+$wpFunctionsFile = $wpTestsDir . '/includes/functions.php';
+
+// If WordPress test files don't exist, skip WordPress setup (for unit tests)
+if (!file_exists($wpFunctionsFile)) {
+    echo "WordPress test environment not available. Running basic unit tests only.\n";
     return;
 }
 
 // Load WordPress test environment for integration tests
-define('WP_TESTS_DIR', getenv('WP_TESTS_DIR') ?: '/tmp/wordpress-tests-lib');
-
-// Check if WordPress test files exist
-if (!file_exists(WP_TESTS_DIR . '/includes/functions.php')) {
-    echo "WordPress test libraries not found at " . WP_TESTS_DIR . ". Skipping WordPress-dependent tests.\n";
-    return;
-}
+define('WP_TESTS_DIR', $wpTestsDir);
 
 // Load WordPress test functions
 require_once WP_TESTS_DIR . '/includes/functions.php';

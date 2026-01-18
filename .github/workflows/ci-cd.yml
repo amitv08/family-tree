@@ -60,7 +60,6 @@ jobs:
 
       - name: Run PHPUnit tests
         run: |
-          export PHPUNIT_TESTSUITE="Unit Tests"
           phpunit --configuration phpunit.xml --testsuite="Unit Tests" --coverage-text --colors=never
 
       - name: Run security scan
@@ -220,9 +219,13 @@ jobs:
 
           # Install WordPress test suite using git (more reliable than SVN)
           cd /tmp
-          git clone --depth=1 https://github.com/WordPress/wordpress-develop.git wordpress-tests-lib
+          echo "Cloning WordPress test framework..."
+          git clone --depth=1 --branch=trunk https://github.com/WordPress/wordpress-develop.git wordpress-tests-lib
           cd wordpress-tests-lib
+
+          # Copy and configure test config
           cp wp-tests-config-sample.php wp-tests-config.php
+          echo "Configuring wp-tests-config.php..."
 
           # Update wp-tests-config.php with our settings
           sed -i "s|dirname( __FILE__ ) . '/src/'|'/tmp/wordpress/'|" wp-tests-config.php
@@ -230,6 +233,16 @@ jobs:
           sed -i "s|define( 'DB_USER', 'root' );|define( 'DB_USER', 'root' );|" wp-tests-config.php
           sed -i "s|define( 'DB_PASSWORD', '' );|define( 'DB_PASSWORD', 'testpass' );|" wp-tests-config.php
           sed -i "s|define( 'DB_HOST', 'localhost' );|define( 'DB_HOST', '127.0.0.1' );|" wp-tests-config.php
+
+          echo "WordPress test setup complete."
+
+          # Verify test files exist
+          if [ -f "/tmp/wordpress-tests-lib/includes/functions.php" ]; then
+            echo "WordPress test files installed successfully."
+          else
+            echo "Warning: WordPress test files not found. Integration tests may fail."
+            ls -la /tmp/wordpress-tests-lib/
+          fi
 
       - name: Run integration tests
         run: |
