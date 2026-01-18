@@ -60,7 +60,7 @@ jobs:
 
       - name: Run PHPUnit tests
         run: |
-          phpunit --configuration phpunit.xml --coverage-text --colors=never
+          phpunit --configuration phpunit.xml --testsuite="Unit Tests" --coverage-text --colors=never
 
       - name: Run security scan
         uses: github/super-linter/slim@v5
@@ -99,8 +99,6 @@ jobs:
         uses: snyk/actions/php@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --file=composer.json
 
   # Build and Test Docker Images
   build:
@@ -207,7 +205,7 @@ jobs:
       - name: Setup WordPress test environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y nginx
+          sudo apt-get install -y nginx subversion
           sudo systemctl stop nginx
 
           # Create test WordPress installation
@@ -217,12 +215,37 @@ jobs:
           wp config create --allow-root --dbname=test_familytree --dbuser=root --dbpass=testpass --dbhost=127.0.0.1
           wp db create --allow-root
 
+          # Install WordPress test suite
+          mkdir -p /tmp/wordpress-tests-lib
+          cd /tmp/wordpress-tests-lib
+          svn co https://develop.svn.wordpress.org/trunk/tests/phpunit/includes/ includes
+          svn co https://develop.svn.wordpress.org/trunk/tests/phpunit/data/ data
+
+          # Create wp-tests-config.php
+          cat > wp-tests-config.php << 'EOF'
+          <?php
+          define( 'ABSPATH', '/tmp/wordpress/' );
+          define( 'WP_DEBUG', true );
+          define( 'DB_NAME', 'test_familytree' );
+          define( 'DB_USER', 'root' );
+          define( 'DB_PASSWORD', 'testpass' );
+          define( 'DB_HOST', '127.0.0.1' );
+          define( 'DB_CHARSET', 'utf8' );
+          define( 'DB_COLLATE', '' );
+          define( 'WP_TESTS_DOMAIN', 'example.org' );
+          define( 'WP_TESTS_EMAIL', 'admin@example.org' );
+          define( 'WP_TESTS_TITLE', 'Test Blog' );
+          define( 'WP_PHP_BINARY', 'php' );
+          define( 'WPLANG', '' );
+          EOF
+
       - name: Run integration tests
         run: |
-          cd /tmp/wordpress
-          wp plugin activate family-tree --allow-root
-          # Run integration test scripts
-          php /home/runner/work/family-tree/family-tree/tests/integration/run-integration-tests.php
+          cd /home/runner/work/family-tree/family-tree
+          # Set WordPress test environment variables
+          export WP_TESTS_DIR=/tmp/wordpress-tests-lib
+          # Run PHPUnit with integration tests
+          phpunit --configuration phpunit.xml --testsuite="Integration Tests" --colors=never
 
   # Deploy to Staging (only on main branch)
   deploy-staging:
