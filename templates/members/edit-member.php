@@ -14,20 +14,28 @@ if (!current_user_can('edit_family_members')) {
     wp_die('You do not have permission to edit members.');
 }
 
+use FamilyTree\Repositories\MemberRepository;
+use FamilyTree\Repositories\ClanRepository;
+use FamilyTree\Repositories\MarriageRepository;
+
 // Get member ID from URL
 $member_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if (!$member_id) {
     wp_die('Invalid member ID');
 }
 
+$member_repo = new MemberRepository();
+$clan_repo = new ClanRepository();
+$marriage_repo = new MarriageRepository();
+
 // Fetch the member data
-$member = FamilyTreeDatabase::get_member($member_id);
+$member = $member_repo->find($member_id);
 if (!$member) {
     wp_die('Member not found');
 }
 
-$clans = FamilyTreeDatabase::get_all_clans_simple();
-$all_members = FamilyTreeDatabase::get_members(2000, 0);
+$clans = $clan_repo->get_all_simple();
+$all_members = $member_repo->get_members(2000, 0);
 
 $breadcrumbs = [
     ['label' => 'Dashboard', 'url' => '/family-dashboard'],
@@ -237,7 +245,7 @@ ob_start();
                 <div class="form-group">
                     <?php
                     // Get marriages for this member to determine marital status
-                    $marriages = FamilyTreeDatabase::get_marriages_for_member($member_id);
+                    $marriages = $marriage_repo->get_marriages_for_member($member_id);
                     $latest_marriage = !empty($marriages) ? end($marriages) : null;
                     $current_status = 'unmarried';
                     if ($latest_marriage) {
@@ -286,7 +294,7 @@ ob_start();
             <!-- Hidden data for existing marriages -->
             <script type="application/json" id="existing_marriages_data">
                 <?php
-                $marriages = FamilyTreeDatabase::get_marriages_for_member($member_id);
+                $marriages = $marriage_repo->get_marriages_for_member($member_id);
                 $marriages_data = [];
                 foreach ($marriages as $marriage) {
                     $spouse_name = '';

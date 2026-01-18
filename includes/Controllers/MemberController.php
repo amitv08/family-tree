@@ -10,14 +10,18 @@ namespace FamilyTree\Controllers;
 
 use FamilyTree\Config;
 use FamilyTree\Repositories\MarriageRepository;
+use FamilyTree\Repositories\MemberRepository;
+use FamilyTree\Validators\MemberValidator;
 
 if (!defined('ABSPATH')) exit;
 
 class MemberController extends BaseController {
     private MarriageRepository $marriage_repository;
+    private MemberRepository $member_repository;
 
     public function __construct() {
         $this->marriage_repository = new MarriageRepository();
+        $this->member_repository = new MemberRepository();
     }
     /**
      * Add a new family member
@@ -29,13 +33,13 @@ class MemberController extends BaseController {
         $data = $_POST;
 
         // Validate first
-        $validation_errors = \FamilyTreeDatabase::validate_member_data($data);
+        $validation_errors = MemberValidator::validate($data);
         if (!empty($validation_errors)) {
             $this->error(implode(' ', $validation_errors));
             return;
         }
 
-        $member_id = \FamilyTreeDatabase::add_member($data);
+        $member_id = $this->member_repository->add($data);
 
         if ($member_id) {
             // Handle marriage data if marital status is married, divorced, or widowed
@@ -48,6 +52,22 @@ class MemberController extends BaseController {
     }
 
     /**
+     * Get family members
+     */
+    public function get_members(): void {
+        $this->verify_nonce();
+        
+        $limit = $this->get_post_int('limit', 50);
+        $offset = $this->get_post_int('offset', 0);
+        
+        $members = $this->member_repository->get_members($limit, $offset);
+        
+        error_log('Family Tree: get_members returning ' . count($members) . ' members');
+        
+        $this->success(['members' => $members]);
+    }
+
+    /**
      * Update an existing family member
      */
     public function update(): void {
@@ -57,13 +77,13 @@ class MemberController extends BaseController {
         $id = $this->get_post_int('member_id');
 
         // Validate first
-        $validation_errors = \FamilyTreeDatabase::validate_member_data($_POST, $id);
+        $validation_errors = MemberValidator::validate($_POST, $id);
         if (!empty($validation_errors)) {
             $this->error(implode(' ', $validation_errors));
             return;
         }
 
-        $ok = \FamilyTreeDatabase::update_member($id, $_POST);
+        $ok = $this->member_repository->update($id, $_POST);
 
         if ($ok) {
             // Handle marriage data if marital status is married, divorced, or widowed
@@ -121,7 +141,7 @@ class MemberController extends BaseController {
             return;
         }
 
-        $ok = \FamilyTreeDatabase::soft_delete_member($id);
+        $ok = $this->member_repository->soft_delete($id);
 
         if ($ok) {
             $this->success('Member soft-deleted');
@@ -148,7 +168,7 @@ class MemberController extends BaseController {
             return;
         }
 
-        $ok = \FamilyTreeDatabase::restore_member($id);
+        $ok = $this->member_repository->restore($id);
 
         if ($ok) {
             $this->success('Member restored');
@@ -171,7 +191,7 @@ class MemberController extends BaseController {
             return;
         }
 
-        $results = \FamilyTreeDatabase::search_members($query, 20);
+        $results = $this->member_repository->search($query, 20);
         wp_send_json($results ?: []);
     }
 
@@ -197,7 +217,7 @@ class MemberController extends BaseController {
         }
 
         // Get member data to determine gender
-        $member = \FamilyTreeDatabase::get_member($member_id);
+        $member = $this->member_repository->find($member_id);
         if (!$member) {
             return;
         }

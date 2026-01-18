@@ -97,6 +97,25 @@ class ClanRepository extends BaseRepository {
     }
 
     /**
+     * Get clans (alias for get_all_simple for consistency)
+     *
+     * @return array
+     */
+    public function get_clans(): array {
+        return $this->get_all_simple();
+    }
+
+    /**
+     * Get total clan count
+     *
+     * @return int
+     */
+    public function get_clan_count(): int {
+        $result = $this->wpdb->get_var("SELECT COUNT(*) FROM {$this->table}");
+        return intval($result);
+    }
+
+    /**
      * Get clan name by ID
      *
      * @param int $clan_id Clan ID

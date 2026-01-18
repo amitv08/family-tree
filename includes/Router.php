@@ -29,14 +29,33 @@ class Router {
      * Handle routing
      */
     public function handle(): void {
+        error_log('Family Tree Router: handle() method called at ' . time());
+        
         $uri = $_SERVER['REQUEST_URI'] ?? '';
-
+        
+        // Debug output
+        error_log('Family Tree Router: Handling request for URI: ' . $uri);
+        
+        // Check if we have a family_tree_route query var
+        $route = get_query_var('family_tree_route');
+        error_log('Family Tree Router: family_tree_route query var: ' . ($route ?: 'NOT SET'));
+        if (!empty($route)) {
+            error_log('Family Tree Router: Found route query var: ' . $route);
+            $this->serve_template($route);
+            return;
+        }
+        error_log('Family Tree Router: Parsed URI path: ' . $uri);
+        
         foreach ($this->routes as $route => $template) {
-            if (strpos($uri, $route) !== false) {
+            error_log('Family Tree Router: Checking route: ' . $route . ' -> ' . $template);
+            if ($uri === $route || $uri === $route . '/') {
+                error_log('Family Tree Router: Route matched! Loading template: ' . $template);
                 $this->load_template($template, $route);
-                return;
+                exit; // Stop WordPress execution
             }
         }
+        
+        error_log('Family Tree Router: No route matched for: ' . $uri);
     }
 
     /**
@@ -60,13 +79,27 @@ class Router {
     }
 
     /**
+     * Serve template for query var based routing
+     */
+    private function serve_template(string $route): void {
+        // Look up the template for this route
+        $template = Config::ROUTES[$route] ?? null;
+        
+        if ($template) {
+            $this->load_template($template, $route);
+        } else {
+            wp_die('Route not found: ' . esc_html($route));
+        }
+    }
+
+    /**
      * Apply middleware checks for routes
      *
      * @param string $route Route pattern
      */
     private function apply_middleware(string $route): void {
         // Public routes (no auth required)
-        $public_routes = ['/family-dashboard', '/family-login'];
+        $public_routes = ['/family-login'];
 
         if (in_array($route, $public_routes)) {
             return;

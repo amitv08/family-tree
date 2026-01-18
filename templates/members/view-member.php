@@ -10,8 +10,16 @@ if (!is_user_logged_in()) {
     exit;
 }
 
+use FamilyTree\Repositories\MemberRepository;
+use FamilyTree\Repositories\ClanRepository;
+use FamilyTree\Repositories\MarriageRepository;
+
 $member_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$member = FamilyTreeDatabase::get_member($member_id);
+$member_repo = new MemberRepository();
+$clan_repo = new ClanRepository();
+$marriage_repo = new MarriageRepository();
+
+$member = $member_repo->find($member_id);
 
 if (!$member) {
     wp_die('Member not found.');
@@ -174,7 +182,7 @@ ob_start();
                     </dt>
                     <dd style="margin: 0 0 var(--spacing-lg) 0; color: var(--color-text-secondary);">
                         <?php
-                        $clan_name = FamilyTreeDatabase::get_clan_name($member->clan_id);
+                        $clan_name = $clan_repo->get_clan_name($member->clan_id);
                         echo $clan_name ? '<strong>' . esc_html($clan_name) . '</strong>' : '<em>Not assigned</em>';
                         ?>
                     </dd>
@@ -184,7 +192,7 @@ ob_start();
                     </dt>
                     <dd style="margin: 0 0 var(--spacing-lg) 0;">
                         <?php if ($member->parent1_id): ?>
-                            <?php $p1 = FamilyTreeDatabase::get_member($member->parent1_id); ?>
+                            <?php $p1 = $member_repo->find($member->parent1_id); ?>
                             <a href="/view-member?id=<?php echo intval($p1->id); ?>" style="color: var(--color-primary); text-decoration: underline;">
                                 <?php echo esc_html($p1->first_name . ' ' . $p1->last_name); ?>
                             </a>
@@ -200,7 +208,7 @@ ob_start();
                         <?php if (!empty($member->parent2_name)): ?>
                             <?php echo esc_html($member->parent2_name); ?>
                         <?php elseif ($member->parent2_id): ?>
-                            <?php $p2 = FamilyTreeDatabase::get_member($member->parent2_id); ?>
+                            <?php $p2 = $member_repo->find($member->parent2_id); ?>
                             <?php if ($p2): ?>
                                 <a href="/view-member?id=<?php echo intval($p2->id); ?>" style="color: var(--color-primary); text-decoration: underline;">
                                     <?php echo esc_html($p2->first_name . ' ' . $p2->last_name); ?>
@@ -218,13 +226,13 @@ ob_start();
 
         <!-- Marriages Section (Phase 2) -->
         <?php
-        $marriages = FamilyTreeDatabase::get_marriages_for_member($member->id);
+        $marriages = $marriage_repo->get_marriages_for_member($member->id);
 
         // Performance optimization: Fetch all children in one query instead of N+1
         $all_children_by_marriage = [];
         if (!empty($marriages)) {
             $marriage_ids = array_map(function($m) { return $m->id; }, $marriages);
-            $all_children_by_marriage = FamilyTreeDatabase::get_children_for_marriages_batch($marriage_ids);
+            $all_children_by_marriage = $marriage_repo->get_children_for_marriages($marriage_ids);
         }
 
         if (!empty($marriages)):

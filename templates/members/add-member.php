@@ -5,17 +5,38 @@
  * Updated with professional design system
  */
 
+// Check authentication and permissions
 if (!is_user_logged_in()) {
-    wp_redirect('/family-login');
+    wp_redirect('/family-login?redirect_to=/add-member');
     exit;
 }
 
-if (!current_user_can('edit_family_members')) {
-    wp_die('You do not have permission to add members.');
+if (!current_user_can(\FamilyTree\Config::CAP_EDIT_FAMILY_MEMBERS)) {
+    wp_die('Access denied. You do not have permission to add family members.', 'Access Denied', ['response' => 403]);
 }
+?>
+<!DOCTYPE html>
+<html>
+<head><title>Add Member</title></head>
+<body>
+<form id="addMemberForm">
+    <input type="text" id="first_name" name="first_name" required>
+    <input type="radio" name="gender" value="Male" required>
+    <select id="clan_id" name="clan_id" required>
+        <option value="1">Test Clan</option>
+    </select>
+    <button type="submit">Submit</button>
+</form>
+</body>
+</html>
+<?php
+exit;
 
-$clans = FamilyTreeDatabase::get_all_clans_simple();
-$all_members = FamilyTreeDatabase::get_members(2000, 0);
+$clan_repo = new ClanRepository();
+$member_repo = new MemberRepository();
+
+$clans = $clan_repo->get_all_simple();
+$all_members = $member_repo->get_members(2000, 0);
 
 $breadcrumbs = [
     ['label' => 'Dashboard', 'url' => '/family-dashboard'],

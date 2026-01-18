@@ -10,6 +10,7 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./:/var/www/html/wp-content/plugins/family-tree:ro
       - nginx_logs:/var/log/nginx
     depends_on:
       - wordpress
@@ -92,12 +93,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
-    # healthcheck:
-    #   test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpass123}"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 5
-    #   start_period: 30s
 
   # Redis for Caching
   redis:
@@ -134,8 +129,6 @@ services:
       - dev
 
 volumes:
-  wordpress_data:
-    driver: local
   mysql_data:
     driver: local
   redis_data:

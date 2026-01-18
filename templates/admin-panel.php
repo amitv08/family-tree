@@ -9,6 +9,10 @@ if (!is_user_logged_in() || !current_user_can('manage_family')) {
     exit;
 }
 
+use FamilyTree\Repositories\MemberRepository;
+
+$member_repo = new MemberRepository();
+
 // Get all family users
 $family_users = get_users(array(
     'meta_query' => array(
@@ -258,7 +262,7 @@ ob_start();
         <h2 class="section-title">📊 Family Members Overview</h2>
         
         <?php
-        $members = FamilyTreeDatabase::get_members();
+        $members = $member_repo->get_members();
         $member_count = $members ? count($members) : 0;
         $with_parents = 0;
         $with_birthdates = 0;

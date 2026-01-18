@@ -10,8 +10,14 @@ if (!is_user_logged_in()) {
     exit;
 }
 
+use FamilyTree\Repositories\MemberRepository;
+use FamilyTree\Repositories\ClanRepository;
+
 $can_manage = current_user_can('manage_family') || current_user_can('family_super_admin');
-$members = FamilyTreeDatabase::get_members(1000, 0, true);
+$member_repo = new MemberRepository();
+$clan_repo = new ClanRepository();
+
+$members = $member_repo->get_members(1000, 0, true); // Include deleted for admin view
 
 $breadcrumbs = [
     ['label' => 'Dashboard', 'url' => '/family-dashboard'],
@@ -134,7 +140,7 @@ ob_start();
                             ?>
                         </td>
                         <td><?php echo esc_html($m->birth_date ?: '-'); ?></td>
-                        <td><?php echo esc_html(FamilyTreeDatabase::get_clan_name($m->clan_id)); ?></td>
+                        <td><?php echo esc_html($clan_repo->get_clan_name($m->clan_id)); ?></td>
                         <td>
                             <?php if (!empty($m->death_date)): ?>
                                 <span class="badge badge-danger">⚫ Deceased</span>

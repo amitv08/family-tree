@@ -11,36 +11,19 @@
 
 if (!defined('ABSPATH')) exit;
 
-// -------------------------------------------------------------
-// Constants
-// -------------------------------------------------------------
-define('FAMILY_TREE_URL', plugin_dir_url(__FILE__));
+// Define plugin constants
 define('FAMILY_TREE_PATH', plugin_dir_path(__FILE__));
+define('FAMILY_TREE_URL', plugin_dir_url(__FILE__));
 
-// -------------------------------------------------------------
-// Autoloader
-// -------------------------------------------------------------
-require_once FAMILY_TREE_PATH . 'includes/Autoloader.php';
+// Include the autoloader
+require_once plugin_dir_path(__FILE__) . 'includes/Autoloader.php';
 
-$autoloader = new \FamilyTree\Autoloader();
+// Initialize the autoloader
+$autoloader = new FamilyTree\Autoloader();
 $autoloader->register();
 
-// -------------------------------------------------------------
-// Legacy Support - Load old database classes for backward compatibility
-// -------------------------------------------------------------
-require_once FAMILY_TREE_PATH . 'includes/database.php';
-require_once FAMILY_TREE_PATH . 'includes/clans-database.php';
-require_once FAMILY_TREE_PATH . 'includes/roles.php';
-require_once FAMILY_TREE_PATH . 'includes/shortcodes.php';
+// Initialize the plugin
+$family_tree_plugin = new FamilyTree\Plugin();
 
-// -------------------------------------------------------------
-// Initialize Plugin
-// -------------------------------------------------------------
-use FamilyTree\Plugin;
-
-$family_tree_plugin = new Plugin();
-
-// -------------------------------------------------------------
-// Activation Hook
-// -------------------------------------------------------------
-register_activation_hook(__FILE__, [Plugin::class, 'activate']);
+// Activation hook
+register_activation_hook(__FILE__, array($family_tree_plugin, 'activate'));

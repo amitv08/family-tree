@@ -14,7 +14,7 @@ class Config {
     /**
      * Plugin version
      */
-    public const VERSION = '3.0.0';
+    public const VERSION = '3.5.0';
 
     /**
      * Database table names (without prefix)
@@ -79,6 +79,7 @@ class Config {
     public const ROUTES = [
         '/family-dashboard' => 'dashboard.php',
         '/family-login' => 'login.php',
+        '/family-register' => 'register.php',
         '/family-admin' => 'admin-panel.php',
         '/add-member' => 'members/add-member.php',
         '/edit-member' => 'members/edit-member.php',

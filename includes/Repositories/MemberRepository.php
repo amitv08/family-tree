@@ -44,6 +44,23 @@ class MemberRepository extends BaseRepository {
     }
 
     /**
+     * Get total member count (excluding deleted by default)
+     *
+     * @param bool $include_deleted Include soft-deleted members
+     * @return int
+     */
+    public function get_member_count(bool $include_deleted = false): int {
+        if ($include_deleted) {
+            return $this->count();
+        }
+
+        $result = $this->wpdb->get_var(
+            "SELECT COUNT(*) FROM {$this->table} WHERE COALESCE(is_deleted, 0) = 0"
+        );
+        return intval($result);
+    }
+
+    /**
      * Add a new member
      *
      * @param array $data Member data

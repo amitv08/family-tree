@@ -4,9 +4,18 @@ if (!is_user_logged_in()) {
     exit;
 }
 
+use FamilyTree\Repositories\MemberRepository;
+use FamilyTree\Repositories\ClanRepository;
+
 $current_user = wp_get_current_user();
-$members = FamilyTreeDatabase::get_members();
-$member_count = $members ? count($members) : 0;
+$member_repo = new MemberRepository();
+$clan_repo = new ClanRepository();
+
+$members = $member_repo->get_members(1000, 0);
+$member_count = count($members);
+
+$clans = $clan_repo->get_all_with_details();
+$clan_count = count($clans);
 
 $breadcrumbs = [];
 $page_title = 'Dashboard';
@@ -24,7 +33,7 @@ ob_start();
 </div>
 
 <!-- Stats Grid -->
-<div class="grid grid-2" style="margin-bottom: var(--spacing-3xl);">
+<div class="grid grid-4" style="margin-bottom: var(--spacing-3xl);">
     <!-- Members Stat -->
     <div class="stat-card">
         <div class="stat-card-icon">👥</div>
@@ -45,6 +54,24 @@ ob_start();
         <?php endif; ?>
     </div>
 
+    <!-- Clans Stat -->
+    <div class="stat-card">
+        <div class="stat-card-icon">🏰</div>
+        <div class="stat-card-value"><?php echo $clan_count; ?></div>
+        <p class="stat-card-label">Family Clans</p>
+        <?php if ($clan_count > 0): ?>
+            <small style="color: var(--color-text-light);">
+                <?php
+                $with_locations = 0;
+                foreach ($clans as $clan) {
+                    if (!empty($clan->locations)) $with_locations++;
+                }
+                echo $with_locations . ' with locations';
+                ?>
+            </small>
+        <?php endif; ?>
+    </div>
+
     <!-- Role Stat -->
     <div class="stat-card">
         <div class="stat-card-icon">🔑</div>
@@ -52,6 +79,96 @@ ob_start();
             <?php echo ucfirst(str_replace('family_', '', $current_user->roles[0] ?? 'Viewer')); ?>
         </div>
         <p class="stat-card-label">Your Role</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="stat-card">
+        <div class="stat-card-icon">⚡</div>
+        <div class="stat-card-value">Quick</div>
+        <p class="stat-card-label">Actions</p>
+        <div style="margin-top: var(--spacing-md);">
+            <?php if (current_user_can('edit_family_members')): ?>
+                <a href="/add-member" class="btn btn-sm btn-primary" style="margin-right: var(--spacing-sm);">Add Member</a>
+            <?php endif; ?>
+            <?php if (current_user_can('manage_clans')): ?>
+                <a href="/add-clan" class="btn btn-sm btn-outline">Add Clan</a>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="section">
+    <h2 class="section-title">Recent Activity</h2>
+    <div class="grid grid-2">
+        <!-- Recent Members -->
+        <div class="card">
+            <h3 class="card-title">Recently Added Members</h3>
+            <?php if (!empty($members)): ?>
+                <div class="activity-list">
+                    <?php
+                    // Sort by created_at descending and take first 5
+                    usort($members, function($a, $b) {
+                        return strtotime($b->created_at ?? '1970-01-01') - strtotime($a->created_at ?? '1970-01-01');
+                    });
+                    $recent_members = array_slice($members, 0, 5);
+                    foreach ($recent_members as $member):
+                        if (empty($member->created_at)) continue;
+                    ?>
+                        <div class="activity-item">
+                            <div class="activity-icon">👤</div>
+                            <div class="activity-content">
+                                <div class="activity-title">
+                                    <a href="/view-member?id=<?php echo $member->id; ?>">
+                                        <?php echo esc_html($member->first_name . ' ' . $member->last_name); ?>
+                                    </a>
+                                </div>
+                                <small class="activity-meta">
+                                    Added <?php echo human_time_diff(strtotime($member->created_at), current_time('timestamp')); ?> ago
+                                </small>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <p class="text-muted">No members added yet.</p>
+            <?php endif; ?>
+        </div>
+
+        <!-- Recent Clans -->
+        <div class="card">
+            <h3 class="card-title">Family Clans</h3>
+            <?php if (!empty($clans)): ?>
+                <div class="activity-list">
+                    <?php
+                    // Take first 5 clans
+                    $recent_clans = array_slice($clans, 0, 5);
+                    foreach ($recent_clans as $clan):
+                    ?>
+                        <div class="activity-item">
+                            <div class="activity-icon">🏰</div>
+                            <div class="activity-content">
+                                <div class="activity-title">
+                                    <a href="/view-clan?id=<?php echo $clan->id; ?>">
+                                        <?php echo esc_html($clan->clan_name); ?>
+                                    </a>
+                                </div>
+                                <small class="activity-meta">
+                                    <?php
+                                    $location_count = count($clan->locations ?? []);
+                                    $surname_count = count($clan->surnames ?? []);
+                                    echo $location_count . ' location' . ($location_count !== 1 ? 's' : '') .
+                                         ', ' . $surname_count . ' surname' . ($surname_count !== 1 ? 's' : '');
+                                    ?>
+                                </small>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <p class="text-muted">No clans created yet.</p>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 

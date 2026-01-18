@@ -17,7 +17,7 @@ services:
         define('WP_REDIS_PORT', 6379);
         define('WP_REDIS_DATABASE', 0);
         define('WP_MEMORY_LIMIT', '512M');
-        define('WP_MAX_MEMORY_LIMIT', '1024M')
+        define('WP_MAX_MEMORY_LIMIT', '1024M');
     volumes:
       # Mount source code for live development
       - ./:/var/www/html/wp-content/plugins/family-tree

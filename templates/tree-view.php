@@ -9,8 +9,12 @@ if (!is_user_logged_in()) {
     exit;
 }
 
+use FamilyTree\Repositories\MemberRepository;
+
+$member_repo = new MemberRepository();
+
 // Fetch all member data for tree
-$members = FamilyTreeDatabase::get_tree_data();
+$members = $member_repo->get_tree_data();
 
 // Build clan list for filter dropdown
 $clans = [];

@@ -285,6 +285,13 @@ if (is_user_logged_in()) {
                 </div>
             <?php endif; ?>
 
+            <?php if (isset($_GET['registered']) && $_GET['registered'] == 'success'): ?>
+                <div class="login-message success">
+                    ✅ Account created successfully! <?php if (isset($_GET['username'])): ?>Your username is: <strong><?php echo esc_html($_GET['username']); ?></strong><?php endif; ?><br>
+                    Please check your email for your password and login details.
+                </div>
+            <?php endif; ?>
+
             <!-- Login Form -->
             <form name="loginform" id="loginform" action="<?php echo esc_url(site_url('wp-login.php', 'login_post')); ?>" method="post" class="login-form">
                 <!-- Username/Email -->
@@ -358,7 +365,7 @@ if (is_user_logged_in()) {
             <div class="login-footer">
                 <?php if (get_option('users_can_register')): ?>
                     <p>Don't have an account yet?</p>
-                    <a href="<?php echo esc_url(wp_registration_url()); ?>" class="register-button">
+                    <a href="/family-register" class="register-button">
                         Create Account
                     </a>
                 <?php else: ?>
@@ -373,7 +380,7 @@ if (is_user_logged_in()) {
         <!-- Footer Text -->
         <div style="text-align: center; margin-top: var(--spacing-2xl); color: rgba(255,255,255,0.8); font-size: var(--font-size-sm);">
             <p style="margin: 0;">
-                © <?php echo date('Y'); ?> <?php bloginfo('name'); ?> • Family Tree Plugin v2.3
+                © <?php echo date('Y'); ?> Family Tree Plugin v<?php echo \FamilyTree\Config::VERSION; ?>
             </p>
         </div>
     </div>

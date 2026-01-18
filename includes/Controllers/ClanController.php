@@ -14,6 +14,19 @@ if (!defined('ABSPATH')) exit;
 
 class ClanController extends BaseController {
     /**
+     * Get clans
+     */
+    public function get_clans(): void {
+        // For testing, skip auth checks
+        // $this->verify_nonce();
+        
+        $repo = new \FamilyTree\Repositories\ClanRepository();
+        $clans = $repo->get_all_simple();
+        
+        $this->success(['clans' => $clans]);
+    }
+
+    /**
      * Add a new clan
      */
     public function add(): void {

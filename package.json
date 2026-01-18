@@ -1,0 +1,42 @@
+{
+  "name": "family-tree-plugin",
+  "version": "3.5.0",
+  "description": "Professional Family Tree WordPress Plugin",
+  "main": "assets/js/script.js",
+  "scripts": {
+    "build": "npm run build:css && npm run build:js",
+    "build:css": "postcss assets/css/style.css -o assets/css/style.min.css",
+    "build:js": "uglifyjs assets/js/*.js -o assets/js/bundle.min.js",
+    "watch": "npm run watch:css & npm run watch:js",
+    "watch:css": "postcss assets/css/style.css -o assets/css/style.min.css --watch",
+    "watch:js": "watchify assets/js/script.js -o assets/js/bundle.min.js",
+    "lint": "eslint assets/js/",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "postcss": "^8.4.35",
+    "postcss-cli": "^11.0.0",
+    "autoprefixer": "^10.4.19",
+    "cssnano": "^6.1.2",
+    "uglify-js": "^3.17.4",
+    "watchify": "^4.0.0"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/family-tree.git"
+  },
+  "keywords": [
+    "wordpress",
+    "plugin",
+    "family-tree",
+    "genealogy"
+  ],
+  "author": "Your Name",
+  "license": "GPL-2.0-or-later"
+}

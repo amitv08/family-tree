@@ -34,6 +34,8 @@ class Plugin {
      * Constructor - Initialize the plugin
      */
     public function __construct() {
+        error_log('Family Tree Plugin: Constructor called at ' . time());
+        
         // Initialize router
         $this->router = new Router();
 
@@ -58,44 +60,21 @@ class Plugin {
      * Register WordPress hooks
      */
     private function register_hooks(): void {
-        // Core hooks
+        error_log('Family Tree Plugin: Registering hooks');
+        
+        // Plugin initialization
         add_action('init', [$this, 'init']);
-        add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
-
+        
         // Routing
-        add_action('template_redirect', [$this->router, 'handle']);
+        add_action('parse_request', [$this, 'handle_routing']);
         add_action('template_redirect', [$this->router, 'redirect_home']);
-
-        // AJAX hooks for clans
-        add_action('wp_ajax_' . Config::AJAX_ADD_CLAN, [$this->controllers['clan'], 'add']);
-        add_action('wp_ajax_' . Config::AJAX_UPDATE_CLAN, [$this->controllers['clan'], 'update']);
-        add_action('wp_ajax_' . Config::AJAX_DELETE_CLAN, [$this->controllers['clan'], 'delete']);
-        add_action('wp_ajax_' . Config::AJAX_GET_CLAN_DETAILS, [$this->controllers['clan'], 'get_details']);
-        add_action('wp_ajax_' . Config::AJAX_GET_ALL_CLANS_SIMPLE, [$this->controllers['clan'], 'get_all_simple']);
-
-        // AJAX hooks for members
-        add_action('wp_ajax_' . Config::AJAX_ADD_FAMILY_MEMBER, [$this->controllers['member'], 'add']);
-        add_action('wp_ajax_' . Config::AJAX_UPDATE_FAMILY_MEMBER, [$this->controllers['member'], 'update']);
-        add_action('wp_ajax_' . Config::AJAX_DELETE_FAMILY_MEMBER, [$this->controllers['member'], 'delete']);
-        add_action('wp_ajax_' . Config::AJAX_SOFT_DELETE_MEMBER, [$this->controllers['member'], 'soft_delete']);
-        add_action('wp_ajax_' . Config::AJAX_RESTORE_MEMBER, [$this->controllers['member'], 'restore']);
-        add_action('wp_ajax_' . Config::AJAX_SEARCH_MEMBERS_SELECT2, [$this->controllers['member'], 'search_select2']);
-
-        // AJAX hooks for users
-        add_action('wp_ajax_' . Config::AJAX_CREATE_FAMILY_USER, [$this->controllers['user'], 'create']);
-        add_action('wp_ajax_' . Config::AJAX_UPDATE_USER_ROLE, [$this->controllers['user'], 'update_role']);
-        add_action('wp_ajax_' . Config::AJAX_DELETE_FAMILY_USER, [$this->controllers['user'], 'delete']);
-
-        // Phase 2: AJAX hooks for marriages
-        add_action('wp_ajax_' . Config::AJAX_ADD_MARRIAGE, [$this->controllers['marriage'], 'add']);
-        add_action('wp_ajax_' . Config::AJAX_UPDATE_MARRIAGE, [$this->controllers['marriage'], 'update']);
-        add_action('wp_ajax_' . Config::AJAX_DELETE_MARRIAGE, [$this->controllers['marriage'], 'delete']);
-        add_action('wp_ajax_' . Config::AJAX_GET_MARRIAGE_DETAILS, [$this->controllers['marriage'], 'get_details']);
-        add_action('wp_ajax_' . Config::AJAX_GET_MARRIAGES_FOR_MEMBER, [$this->controllers['marriage'], 'get_marriages_for_member']);
-        add_action('wp_ajax_' . Config::AJAX_GET_CHILDREN_FOR_MARRIAGE, [$this->controllers['marriage'], 'get_children_for_marriage']);
-
-        // Security: Configure nonce lifetime
-        add_filter('nonce_life', [$this, 'configure_nonce_lifetime']);
+        
+        // Admin hooks
+        add_action('admin_menu', [$this, 'add_admin_menu']);
+        
+        // Enqueue scripts
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
     }
 
     /**
@@ -135,7 +114,45 @@ class Plugin {
      * Init hook
      */
     public function init(): void {
-        // Reserved for future use
+        // Add query vars
+        add_filter('query_vars', [$this, 'add_query_vars']);
+        
+        // Add rewrite rules for custom routes
+        $this->add_rewrite_rules();
+        
+        // Register AJAX hooks
+        $this->register_ajax_hooks();
+        
+        // Flush rewrite rules if needed (only on activation)
+        if (get_option('family_tree_flush_rewrite_rules')) {
+            flush_rewrite_rules();
+            delete_option('family_tree_flush_rewrite_rules');
+        }
+    }
+
+    /**
+     * Add custom query vars
+     */
+    public function add_query_vars(array $vars): array {        error_log('Family Tree Plugin: Adding query vars');        $vars[] = 'family_tree_route';
+        return $vars;
+    }
+
+    /**
+     * Add rewrite rules for custom routes
+     */
+    private function add_rewrite_rules(): void {
+        global $wp_rewrite;
+        if (!$wp_rewrite) {
+            return; // Rewrite system not initialized yet
+        }
+        
+        foreach (Config::ROUTES as $route => $template) {
+            add_rewrite_rule(
+                '^' . trim($route, '/') . '/?$',
+                'index.php?family_tree_route=' . $route,
+                'top'
+            );
+        }
     }
 
     /**
@@ -197,6 +214,97 @@ class Plugin {
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce(Config::NONCE_NAME),
         ]);
+    }
+
+    /**
+     * Handle custom routing
+     */
+    public function handle_routing(): void {
+        $this->router->handle();
+    }
+
+    /**
+     * Register AJAX hooks
+     */
+    private function register_ajax_hooks(): void {
+        error_log('Family Tree Plugin: Registering AJAX hooks');
+        
+        // Member AJAX endpoints
+        add_action('wp_ajax_add_family_member', [$this->controllers['member'], 'add']);
+        add_action('wp_ajax_nopriv_add_family_member', [$this->controllers['member'], 'add']);
+        add_action('wp_ajax_get_family_members', [$this->controllers['member'], 'get_members']);
+        add_action('wp_ajax_nopriv_get_family_members', [$this->controllers['member'], 'get_members']);
+        add_action('wp_ajax_update_family_member', [$this->controllers['member'], 'update']);
+        add_action('wp_ajax_nopriv_update_family_member', [$this->controllers['member'], 'update']);
+        add_action('wp_ajax_delete_family_member', [$this->controllers['member'], 'delete']);
+        add_action('wp_ajax_nopriv_delete_family_member', [$this->controllers['member'], 'delete']);
+        add_action('wp_ajax_get_member_details', [$this->controllers['member'], 'get_details']);
+        add_action('wp_ajax_nopriv_get_member_details', [$this->controllers['member'], 'get_details']);
+        
+        // Clan AJAX endpoints
+        add_action('wp_ajax_' . Config::AJAX_ADD_CLAN, [$this->controllers['clan'], 'add']);
+        add_action('wp_ajax_nopriv_' . Config::AJAX_ADD_CLAN, [$this->controllers['clan'], 'add']);
+        add_action('wp_ajax_' . Config::AJAX_GET_ALL_CLANS_SIMPLE, [$this->controllers['clan'], 'get_clans']);
+        add_action('wp_ajax_nopriv_' . Config::AJAX_GET_ALL_CLANS_SIMPLE, [$this->controllers['clan'], 'get_clans']);
+        add_action('wp_ajax_' . Config::AJAX_UPDATE_CLAN, [$this->controllers['clan'], 'update']);
+        add_action('wp_ajax_nopriv_' . Config::AJAX_UPDATE_CLAN, [$this->controllers['clan'], 'update']);
+        add_action('wp_ajax_' . Config::AJAX_DELETE_CLAN, [$this->controllers['clan'], 'delete']);
+        add_action('wp_ajax_nopriv_' . Config::AJAX_DELETE_CLAN, [$this->controllers['clan'], 'delete']);
+        add_action('wp_ajax_' . Config::AJAX_GET_CLAN_DETAILS, [$this->controllers['clan'], 'get_details']);
+        add_action('wp_ajax_nopriv_' . Config::AJAX_GET_CLAN_DETAILS, [$this->controllers['clan'], 'get_details']);
+        
+        // Marriage AJAX endpoints
+        add_action('wp_ajax_add_family_marriage', [$this->controllers['marriage'], 'add']);
+        add_action('wp_ajax_nopriv_add_family_marriage', [$this->controllers['marriage'], 'add']);
+        add_action('wp_ajax_get_family_marriages', [$this->controllers['marriage'], 'get_marriages']);
+        add_action('wp_ajax_nopriv_get_family_marriages', [$this->controllers['marriage'], 'get_marriages']);
+        add_action('wp_ajax_update_family_marriage', [$this->controllers['marriage'], 'update']);
+        add_action('wp_ajax_nopriv_update_family_marriage', [$this->controllers['marriage'], 'update']);
+        add_action('wp_ajax_delete_family_marriage', [$this->controllers['marriage'], 'delete']);
+        add_action('wp_ajax_nopriv_delete_family_marriage', [$this->controllers['marriage'], 'delete']);
+        
+        // User AJAX endpoints
+        add_action('wp_ajax_add_family_user', [$this->controllers['user'], 'add']);
+        add_action('wp_ajax_nopriv_add_family_user', [$this->controllers['user'], 'add']);
+        add_action('wp_ajax_get_family_users', [$this->controllers['user'], 'get_users']);
+        add_action('wp_ajax_nopriv_get_family_users', [$this->controllers['user'], 'get_users']);
+        add_action('wp_ajax_update_family_user', [$this->controllers['user'], 'update']);
+        add_action('wp_ajax_nopriv_update_family_user', [$this->controllers['user'], 'update']);
+        add_action('wp_ajax_delete_family_user', [$this->controllers['user'], 'delete']);
+        add_action('wp_ajax_nopriv_delete_family_user', [$this->controllers['user'], 'delete']);
+        
+        // Heartbeat for testing
+        add_action('wp_ajax_heartbeat', [$this, 'heartbeat']);
+        add_action('wp_ajax_nopriv_heartbeat', [$this, 'heartbeat']);
+    }
+
+    /**
+     * Add admin menu
+     */
+    public function add_admin_menu(): void {
+        add_menu_page(
+            'Family Tree Admin',
+            'Family Tree',
+            Config::CAP_MANAGE_FAMILY_TREE,
+            'family-tree-admin',
+            [$this, 'admin_page'],
+            'dashicons-networking',
+            30
+        );
+    }
+
+    /**
+     * Heartbeat endpoint for testing
+     */
+    public function heartbeat(): void {
+        wp_send_json_success(['status' => 'alive', 'timestamp' => time()]);
+    }
+
+    /**
+     * Admin page callback
+     */
+    public function admin_page(): void {
+        require_once FAMILY_TREE_PATH . 'templates/admin-panel.php';
     }
 
     /**
