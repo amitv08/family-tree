@@ -19,9 +19,9 @@ class MemberController extends BaseController {
     private MarriageRepository $marriage_repository;
     private MemberRepository $member_repository;
 
-    public function __construct() {
-        $this->marriage_repository = new MarriageRepository();
-        $this->member_repository = new MemberRepository();
+    public function __construct(?MemberRepository $member_repo = null, ?MarriageRepository $marriage_repo = null) {
+        $this->member_repository = $member_repo ?? new MemberRepository();
+        $this->marriage_repository = $marriage_repo ?? new MarriageRepository();
     }
     /**
      * Add a new family member

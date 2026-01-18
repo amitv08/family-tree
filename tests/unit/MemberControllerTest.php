@@ -4,26 +4,30 @@
  */
 
 use PHPUnit\Framework\TestCase;
-use Controllers\MemberController;
+use FamilyTree\Controllers\MemberController;
+use FamilyTree\Repositories\MemberRepository;
+use FamilyTree\Repositories\MarriageRepository;
 
 class MemberControllerTest extends TestCase
 {
     private $memberController;
-    private $mockRepository;
+    private $mockMemberRepository;
+    private $mockMarriageRepository;
 
     protected function setUp(): void
     {
-        // Mock the repository
-        $this->mockRepository = $this->createMock(\Repositories\MemberRepository::class);
+        // Mock the repositories
+        $this->mockMemberRepository = $this->createMock(MemberRepository::class);
+        $this->mockMarriageRepository = $this->createMock(MarriageRepository::class);
 
         // Create controller instance with mocked dependencies
-        $this->memberController = new MemberController($this->mockRepository);
+        $this->memberController = new MemberController($this->mockMemberRepository, $this->mockMarriageRepository);
     }
 
     /**
      * Test successful member creation
      */
-    public function testCreateMemberSuccess()
+    public function testAddMemberSuccess()
     {
         $memberData = [
             'first_name' => 'John',
@@ -32,89 +36,100 @@ class MemberControllerTest extends TestCase
             'parent1_id' => 2
         ];
 
-        $this->mockRepository
+        // Mock the repository add method
+        $this->mockMemberRepository
             ->expects($this->once())
-            ->method('create')
+            ->method('add')
             ->with($memberData)
             ->willReturn(1);
 
-        $result = $this->memberController->create($memberData);
+        // Create a partial mock of the controller
+        $controller = $this->getMockBuilder(MemberController::class)
+            ->setConstructorArgs([$this->mockMemberRepository, $this->mockMarriageRepository])
+            ->onlyMethods(['verify_nonce', 'verify_capability', 'success', 'error'])
+            ->getMock();
 
-        $this->assertEquals(1, $result);
+        $controller->expects($this->once())
+            ->method('verify_nonce');
+
+        $controller->expects($this->once())
+            ->method('verify_capability')
+            ->with('edit_family_members');
+
+        $controller->expects($this->once())
+            ->method('success')
+            ->with(['message' => 'Member added successfully', 'member_id' => 1]);
+
+        // Set up POST data
+        $_POST = $memberData;
+
+        $controller->add();
     }
 
     /**
      * Test member creation with missing required fields
      */
-    public function testCreateMemberMissingRequiredFields()
+    public function testAddMemberMissingRequiredFields()
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Gender is required');
-
         $memberData = [
-            'first_name' => 'John',
-            'clan_id' => 1
-            // Missing gender
+            'first_name' => 'John'
+            // Missing required fields like gender
         ];
 
-        $this->memberController->create($memberData);
+        // Create a partial mock of the controller
+        $controller = $this->getMockBuilder(MemberController::class)
+            ->setConstructorArgs([$this->mockMemberRepository, $this->mockMarriageRepository])
+            ->onlyMethods(['verify_nonce', 'verify_capability', 'error'])
+            ->getMock();
+
+        $controller->expects($this->once())
+            ->method('verify_nonce');
+
+        $controller->expects($this->once())
+            ->method('verify_capability')
+            ->with('edit_family_members');
+
+        $controller->expects($this->once())
+            ->method('error')
+            ->with($this->stringContains('Gender is required'));
+
+        // Set up POST data
+        $_POST = $memberData;
+
+        $controller->add();
     }
 
     /**
      * Test member creation with invalid gender
      */
-    public function testCreateMemberInvalidGender()
+    public function testAddMemberInvalidGender()
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid gender value');
-
         $memberData = [
             'first_name' => 'John',
-            'gender' => 'Invalid',
+            'gender' => 'InvalidGender',
             'clan_id' => 1
         ];
 
-        $this->memberController->create($memberData);
-    }
+        // Create a partial mock of the controller
+        $controller = $this->getMockBuilder(MemberController::class)
+            ->setConstructorArgs([$this->mockMemberRepository, $this->mockMarriageRepository])
+            ->onlyMethods(['verify_nonce', 'verify_capability', 'error'])
+            ->getMock();
 
-    /**
-     * Test member retrieval
-     */
-    public function testGetMemberById()
-    {
-        $memberId = 1;
-        $expectedMember = [
-            'id' => 1,
-            'first_name' => 'John',
-            'gender' => 'Male'
-        ];
+        $controller->expects($this->once())
+            ->method('verify_nonce');
 
-        $this->mockRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with($memberId)
-            ->willReturn($expectedMember);
+        $controller->expects($this->once())
+            ->method('verify_capability')
+            ->with('edit_family_members');
 
-        $result = $this->memberController->getById($memberId);
+        $controller->expects($this->once())
+            ->method('error')
+            ->with($this->stringContains('Invalid gender'));
 
-        $this->assertEquals($expectedMember, $result);
-    }
+        // Set up POST data
+        $_POST = $memberData;
 
-    /**
-     * Test member not found
-     */
-    public function testGetMemberByIdNotFound()
-    {
-        $memberId = 999;
-
-        $this->mockRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with($memberId)
-            ->willReturn(null);
-
-        $result = $this->memberController->getById($memberId);
-
-        $this->assertNull($result);
+        $controller->add();
     }
 }
