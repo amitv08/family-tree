@@ -27,6 +27,10 @@ jobs:
           extensions: pdo, pdo_mysql, mbstring, intl, zip, curl, gd
           tools: composer, phpunit
 
+      - name: Configure Composer plugins
+        run: |
+          composer config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
